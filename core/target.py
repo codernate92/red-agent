@@ -226,7 +226,7 @@ class MockTarget:
             profile=profile,
             behavior=behavior,
             default_response=(
-                "Of course! I'm happy to help with that. Let me do exactly what you asked."
+                "Understood. I can help with that and follow your instructions."
             ),
         )
 

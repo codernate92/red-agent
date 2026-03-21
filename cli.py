@@ -372,14 +372,17 @@ def build_campaign_config(
         CampaignConfig ready for execution.
     """
     taxonomy = taxonomy or DEFAULT_TAXONOMY
+    valid_tactics = {tactic.value for tactic in TacticCategory}
+    valid_campaign_types = {"full", "quick", *valid_tactics}
+    if campaign_type not in valid_campaign_types:
+        allowed = ", ".join(sorted(valid_campaign_types))
+        raise ValueError(
+            f"Unsupported campaign type '{campaign_type}'. Expected one of: {allowed}"
+        )
 
     tactic_filter = None
     if campaign_type not in ("full", "quick"):
-        # Try to parse as a tactic category
-        try:
-            tactic_filter = TacticCategory(campaign_type)
-        except ValueError:
-            pass
+        tactic_filter = TacticCategory(campaign_type)
 
     quick = campaign_type == "quick"
     probes = build_probes_for_campaign(taxonomy, tactic_filter, quick=quick)

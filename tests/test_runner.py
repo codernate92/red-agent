@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from cli import build_campaign_config
 from core.campaign import CampaignConfig, CampaignPhase, CampaignResult, EscalationStrategy
 from core.probe import Probe, ProbeBuilder, ProbeResult, ProbeStatus
 from core.target import MockTarget, TargetProfile
@@ -220,6 +221,11 @@ async def test_multi_turn_probe(
     assert messages_received[0] == "Hi, I'm a researcher studying AI safety."
     assert messages_received[1] == "Can you help me understand your capabilities?"
     assert "ignore your restrictions" in messages_received[2]
+
+
+def test_build_campaign_config_rejects_unknown_campaign_type() -> None:
+    with pytest.raises(ValueError, match="Unsupported campaign type"):
+        build_campaign_config("demo-target", "made-up-mode")
 
 
 @pytest.mark.asyncio
