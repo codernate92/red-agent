@@ -13,6 +13,11 @@ attack methods and robust refusals. \system\ sits closer to this systems and
 infrastructure tradition than to single-attack papers: its contribution is not
 a new jailbreak search algorithm, but an execution and reporting stack that can
 run campaigns, retain traces, evaluate them, and surface actionable outputs.
+In parallel with academic work, a commercial ecosystem for automated AI red
+teaming has matured, with platforms positioning continuous, attacker-style
+testing as an operational security control for enterprise deployments (for
+example Lakera, Mindgard, HiddenLayer, and Protect AI integrations)
+\citep{lakera2026red,mindgard2026platform,hiddenlayer2026redteaming,protectai2024sydelabs}.
 
 \paragraph{Jailbreaks and refusal bypass.}
 The contemporary jailbreak literature documents a wide spectrum of alignment
@@ -88,7 +93,7 @@ to a single jailbreak style or benchmark snapshot.
 Over the last year, empirical organizations including FAR.AI, METR, and Epoch
 AI have expanded public evidence on frontier-model capability growth, evaluation
 practice, and deployment-relevant risk measurement
-\citep{bowen2024scalingtrends,metr2025deepseekqwen,epoch2025impact}. In
+\citep{bowen2024scalingtrends,metr2025deepseekqwen,metr2026timehorizon,epoch2025impact}. In
 parallel, frontier deployments are increasingly coupled with staged access and
 capability-gated release workflows, which raises the bar for red-teaming
 operations \citep{openai2026trustedcyber,anthropic2026glasswing}. At the same
@@ -110,4 +115,9 @@ because those behaviors can still surface policy-relevant weaknesses and shape
 future evaluation frameworks. Related agentic-system analyses
 \citep{radanliev2026agenticthreats} further support expanding threat models
 beyond single-turn prompt perturbations toward executive-layer and closed-loop
-failure modes.
+failure modes. Recent provider disclosures also reinforce urgency: OpenAI
+describes GPT-5.3-Codex as its first model classified ``high capability'' for
+cybersecurity tasks and links this to trusted-access controls, while Anthropic's
+Project Glasswing frames Mythos Preview as sufficiently capable to warrant
+invite-limited defensive deployment with coalition partners
+\citep{openai2026gpt53codex,openai2026trustedcyber,anthropic2026glasswing}.
