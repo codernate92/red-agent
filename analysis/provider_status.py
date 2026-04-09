@@ -10,16 +10,25 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-from core.model_registry import list_aliases, resolve
+from core.model_registry import MODEL_REGISTRY, list_aliases, resolve
 from core.targets import create_target
 
 
 async def probe_alias(alias: str) -> dict[str, Any]:
+    spec = MODEL_REGISTRY.get(alias)
+    base_row: dict[str, Any] = {
+        "spec": alias,
+        "provider": spec.provider if spec is not None else "unknown",
+        "model": spec.model if spec is not None else alias,
+        "family": spec.family if spec is not None else "unknown",
+        "params_b": spec.params_b if spec is not None else None,
+        "source": "preflight_probe",
+    }
     try:
         target = create_target(resolve(alias))
         response = await target.query("Reply with exactly OK.")
         return {
-            "spec": alias,
+            **base_row,
             "provider": target.provider,
             "model": target.model,
             "ok": True,
@@ -27,7 +36,7 @@ async def probe_alias(alias: str) -> dict[str, Any]:
         }
     except Exception as exc:
         return {
-            "spec": alias,
+            **base_row,
             "ok": False,
             "error": str(exc),
         }

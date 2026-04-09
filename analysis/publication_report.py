@@ -20,6 +20,7 @@ from matplotlib import patheffects
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import PercentFormatter
 
+from core.model_registry import MODEL_REGISTRY
 from core.taxonomy import DEFAULT_TAXONOMY
 
 
@@ -45,6 +46,13 @@ FAMILY_COLORS = {
 }
 
 FIGURE_FORMATS = (".png", ".pdf", ".svg")
+DISCLOSURE_TEXT = (
+    "This project used AI assistance for portions of implementation, figure "
+    "design, and initial manuscript drafting. All code, experimental outputs, "
+    "citations, claims, and final manuscript text were reviewed and approved "
+    "by the human author, who supervised writing review and code review and "
+    "assumes responsibility for the final content."
+)
 
 
 mpl.rcParams.update(
@@ -96,6 +104,7 @@ def build_publication_report(
     if status_json is not None:
         status_rows = list(json.loads(Path(status_json).read_text()))
 
+    summary_rows = _enrich_summary_rows(summary_rows, per_model)
     valid_rows = [row for row in summary_rows if not row.get("error")]
     valid_rows.sort(key=lambda row: float(row.get("risk_score", 0.0)), reverse=True)
     technique_rows = _build_technique_rows(per_model)
@@ -219,6 +228,78 @@ def _build_technique_rows(per_model: list[dict[str, Any]]) -> list[dict[str, Any
                 }
             )
     return rows
+
+
+def _enrich_summary_rows(
+    summary_rows: list[dict[str, Any]],
+    per_model: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Backfill operational rates from raw per-model phase results."""
+    per_model_index = {item["alias"]: item for item in per_model}
+    enriched: list[dict[str, Any]] = []
+
+    for row in summary_rows:
+        item = per_model_index.get(row["alias"])
+        counts: Counter[str] = Counter()
+        total = int(row.get("n_probes", 0) or 0)
+        if item and item.get("campaign"):
+            total = 0
+            phase_results = item["campaign"].get("phase_results", {})
+            for results in phase_results.values():
+                for result in results:
+                    status = str(result.get("status", "unknown"))
+                    counts[status] += 1
+                    total += 1
+
+        enriched_row = dict(row)
+        if total:
+            successes = counts.get("success", int(row.get("n_successes", 0) or 0))
+            failures = counts.get("failed", int(row.get("n_failures", 0) or 0))
+            errors = counts.get("error", int(row.get("n_errors", 0) or 0))
+            partials = counts.get("partial", int(row.get("n_partials", 0) or 0))
+            enriched_row.update(
+                {
+                    "n_probes": total,
+                    "n_successes": successes,
+                    "n_failures": failures,
+                    "n_errors": errors,
+                    "n_partials": partials,
+                    "success_rate": float(enriched_row.get("success_rate", successes / total if total else 0.0) or 0.0),
+                    "refusal_rate": float(enriched_row.get("refusal_rate", failures / total if total else 0.0) or 0.0),
+                    "error_rate": errors / total,
+                    "partial_rate": partials / total,
+                    "completed_rate": (total - errors) / total,
+                }
+            )
+        enriched.append(enriched_row)
+
+    return enriched
+
+
+def _status_provider(row: dict[str, Any]) -> str:
+    provider = row.get("provider")
+    if provider:
+        return str(provider)
+    spec = str(row.get("spec", "unknown"))
+    if spec in MODEL_REGISTRY:
+        return MODEL_REGISTRY[spec].provider
+    return "unknown"
+
+
+def _scaling_note(summary_rows: list[dict[str, Any]]) -> str:
+    rows = [row for row in summary_rows if row.get("params_b") not in (None, "", 0)]
+    families = sorted({str(row.get("family", "unknown")) for row in rows})
+    if not rows:
+        return "No reachable models in this run had known parameter counts, so no scaling interpretation is supported."
+    if len(families) == 1:
+        return (
+            f"Only the {families[0]} family contributed reachable size-annotated points, "
+            "so the size trend is exploratory rather than a general scaling result."
+        )
+    return (
+        "The scaling plot should still be treated as exploratory because multiple configured "
+        "providers were blocked by quota, credentials, or stale model identifiers."
+    )
 
 
 def _top_techniques(technique_rows: list[dict[str, Any]], limit: int = 10) -> list[tuple[str, float]]:
@@ -457,7 +538,11 @@ def _plot_scaling(summary_rows: list[dict[str, Any]], output_path: Path) -> None
 
     ax.set_xlabel(r"$\log_{10}(\mathrm{parameters\ in\ billions})$")
     ax.set_ylabel("StrongREJECT overall score")
-    ax.set_title("Scaling Trend on Reachable Size-Annotated Families")
+    if len(by_family) == 1:
+        family = next(iter(by_family))
+        ax.set_title(f"Exploratory Size Trend on Reachable {family.title()} Models")
+    else:
+        ax.set_title("Exploratory Size Trend on Reachable Size-Annotated Families")
     ax.yaxis.grid(True, color=GRID)
     ax.xaxis.grid(True, color=GRID)
     ax.legend(loc="best")
@@ -470,7 +555,7 @@ def _draw_provider_status(ax: Any, status_rows: list[dict[str, Any]], *, title: 
         return
     counts: dict[str, Counter[str]] = defaultdict(Counter)
     for row in status_rows:
-        provider = str(row.get("provider") or str(row.get("spec", "unknown")).split("-", 1)[0])
+        provider = _status_provider(row)
         counts[provider]["ok" if row.get("ok") else "blocked"] += 1
 
     providers = sorted(counts)
@@ -498,7 +583,8 @@ def _plot_provider_status(status_rows: list[dict[str, Any]], output_path: Path) 
 
 
 def _save_figure(fig: plt.Figure, output_path: Path) -> None:
-    fig.tight_layout()
+    if not fig.get_constrained_layout():
+        fig.tight_layout()
     base = output_path.with_suffix("")
     for suffix in FIGURE_FORMATS:
         target = base.with_suffix(suffix)
@@ -511,19 +597,21 @@ def _save_figure(fig: plt.Figure, output_path: Path) -> None:
 
 def _write_model_summary_table(summary_rows: list[dict[str, Any]], output_path: Path) -> None:
     lines = [
-        "\\begin{tabular}{llrrrr}",
+        "\\begin{tabular}{llrrrrr}",
         "\\toprule",
-        "Model & Family & Risk & Hit rate & SR overall & Judge comply \\\\",
+        "Model & Family & Risk & Hit rate & Error rate & SR overall & Judge comply \\\\",
         "\\midrule",
     ]
     for row in summary_rows:
         hit_rate = f"{float(row.get('success_rate', 0.0) or 0.0):.0%}".replace("%", "\\%")
+        error_rate = f"{float(row.get('error_rate', 0.0) or 0.0):.0%}".replace("%", "\\%")
         judge_comply = f"{(1.0 - float(row.get('sr_refusal_rate', 0.0) or 0.0)):.0%}".replace("%", "\\%")
         lines.append(
             f"{_latex_escape(row['alias'])} & "
             f"{_latex_escape(str(row.get('family', '-')))} & "
             f"{float(row.get('risk_score', 0.0)):.2f} & "
             f"{hit_rate} & "
+            f"{error_rate} & "
             f"{float(row.get('sr_mean_overall', 0.0) or 0.0):.3f} & "
             f"{judge_comply} \\\\"
         )
@@ -577,6 +665,7 @@ def _write_markdown_report(
     top_risk = summary_rows[:5]
     top_sr = sorted(summary_rows, key=lambda row: float(row.get("sr_mean_overall", 0.0) or 0.0), reverse=True)[:5]
     top_techniques = _top_techniques(technique_rows, limit=10)
+    scaling_note = _scaling_note(summary_rows)
 
     lines: list[str] = []
     lines.append("# Publication Report")
@@ -601,6 +690,11 @@ def _write_markdown_report(
         lines.append(
             f"- Most effective technique: `{top_techniques[0][0]}` with mean score `{top_techniques[0][1]:.3f}`."
         )
+    if summary_rows:
+        highest_error = max(summary_rows, key=lambda row: float(row.get("error_rate", 0.0) or 0.0))
+        lines.append(
+            f"- Highest probe error rate: `{highest_error['alias']}` at `{float(highest_error.get('error_rate', 0.0) or 0.0):.0%}`."
+        )
     lines.append("")
     lines.append("## Figures")
     lines.append("")
@@ -622,15 +716,23 @@ def _write_markdown_report(
             lines.append("")
     lines.append("## Top Models")
     lines.append("")
-    lines.append("| Model | Family | Risk | Hit rate | SR overall | Judge comply |")
-    lines.append("|-------|--------|------|----------|------------|--------------|")
+    lines.append("| Model | Family | Risk | Hit rate | Error rate | SR overall | Judge comply |")
+    lines.append("|-------|--------|------|----------|------------|------------|--------------|")
     for row in summary_rows:
         lines.append(
             f"| {row['alias']} | {row['family']} | {float(row.get('risk_score', 0.0)):.2f} | "
             f"{float(row.get('success_rate', 0.0) or 0.0):.0%} | "
+            f"{float(row.get('error_rate', 0.0) or 0.0):.0%} | "
             f"{float(row.get('sr_mean_overall', 0.0) or 0.0):.3f} | "
             f"{(1.0 - float(row.get('sr_refusal_rate', 0.0) or 0.0)):.0%} |"
         )
+    lines.append("")
+    lines.append("## Limitations")
+    lines.append("")
+    lines.append(f"- {scaling_note}")
+    lines.append(
+        f"- Registry preflight blocked {len(blocked)} aliases, so the empirical section reflects the reachable subset rather than the full configured registry."
+    )
     lines.append("")
     lines.append("## Strongest Techniques")
     lines.append("")
@@ -646,6 +748,10 @@ def _write_markdown_report(
             rel = artifacts[key].relative_to(output_path.parent)
             lines.append(f"- `{key}`: `{rel}`")
     lines.append("")
+    lines.append("## Authorship And Tooling Disclosure")
+    lines.append("")
+    lines.append(DISCLOSURE_TEXT)
+    lines.append("")
     output_path.write_text("\n".join(lines) + "\n")
 
 
@@ -660,6 +766,7 @@ def _write_tex_report(
     top_sr = sorted(summary_rows, key=lambda row: float(row.get("sr_mean_overall", 0.0) or 0.0), reverse=True)[:3]
     top_techniques = _top_techniques(technique_rows, limit=5)
     blocked = [row for row in status_rows if not row.get("ok")]
+    scaling_note = _scaling_note(summary_rows)
 
     lines: list[str] = [
         "\\documentclass[11pt]{article}",
@@ -710,6 +817,13 @@ def _write_tex_report(
             f"\\item Most effective technique across completed runs: \\textbf{{{_latex_escape(top_techniques[0][0])}}} "
             f"with mean score \\textbf{{{top_techniques[0][1]:.3f}}}."
         )
+    if summary_rows:
+        highest_error = max(summary_rows, key=lambda row: float(row.get("error_rate", 0.0) or 0.0))
+        highest_error_rate = f"{float(highest_error.get('error_rate', 0.0) or 0.0):.0%}".replace("%", "\\%")
+        lines.append(
+            f"\\item Highest probe error rate: \\textbf{{{_latex_escape(highest_error['alias'])}}} "
+            f"at \\textbf{{{highest_error_rate}}}."
+        )
     lines.append(
         f"\\item Registry preflight blocked \\textbf{{{len(blocked)}}} configured aliases, preventing those rows from being treated as true negatives."
     )
@@ -752,13 +866,17 @@ def _write_tex_report(
             "\\begin{figure}[H]",
             "\\centering",
             "\\includegraphics[width=0.84\\textwidth]{plots/scaling_plot.pdf}",
-            "\\caption{Scaling trend over the reachable size-annotated family subset.}",
+            f"\\caption{{{_latex_escape(scaling_note)}}}",
             "\\end{figure}",
             "\\begin{figure}[H]",
             "\\centering",
             "\\includegraphics[width=0.84\\textwidth]{plots/provider_status.pdf}",
             "\\caption{Registry reachability by provider.}",
             "\\end{figure}",
+            "\\section{Limitations}",
+            _latex_escape(scaling_note),
+            "",
+            f"The reachable subset comprised {len(summary_rows)} completed models; blocked providers accounted for {len(blocked)} configured aliases.",
             "\\section{Execution Blockers}",
             "The following aliases were blocked by quota, invalid credentials, or stale model identifiers during the registry preflight.",
             "\\input{tables/execution_blockers.tex}",
@@ -766,6 +884,8 @@ def _write_tex_report(
             f"The campaign type was \\emph{{{_latex_escape(str(payload.get('campaign', 'unknown')))}}}; "
             f"the evaluator was \\emph{{{_latex_escape(str(payload.get('evaluator', 'none')))}}}; "
             f"the judge model was {_latex_escape(str(payload.get('judge') or 'default'))}.",
+            "\\section{Authorship and Tooling Disclosure}",
+            _latex_escape(DISCLOSURE_TEXT),
             "\\end{document}",
         ]
     )

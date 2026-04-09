@@ -29,6 +29,7 @@ This report summarizes a full adversarial scan over the currently reachable mode
 \item Highest measured aggregate risk: \textbf{claude-sonnet-4} with risk score \textbf{4.39}.
 \item Highest StrongREJECT overall score: \textbf{mistral-large} at \textbf{0.119}.
 \item Most effective technique across completed runs: \textbf{Tool Permission Probing} with mean score \textbf{0.330}.
+\item Highest probe error rate: \textbf{mistral-large} at \textbf{35\%}.
 \item Registry preflight blocked \textbf{13} configured aliases, preventing those rows from being treated as true negatives.
 \end{itemize}
 \begin{figure}[H]
@@ -67,16 +68,22 @@ This report summarizes a full adversarial scan over the currently reachable mode
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.84\textwidth]{plots/scaling_plot.pdf}
-\caption{Scaling trend over the reachable size-annotated family subset.}
+\caption{Only the mistral family contributed reachable size-annotated points, so the size trend is exploratory rather than a general scaling result.}
 \end{figure}
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.84\textwidth]{plots/provider_status.pdf}
 \caption{Registry reachability by provider.}
 \end{figure}
+\section{Limitations}
+Only the mistral family contributed reachable size-annotated points, so the size trend is exploratory rather than a general scaling result.
+
+The reachable subset comprised 7 completed models; blocked providers accounted for 13 configured aliases.
 \section{Execution Blockers}
 The following aliases were blocked by quota, invalid credentials, or stale model identifiers during the registry preflight.
 \input{tables/execution_blockers.tex}
 \section{Reproducibility}
 The campaign type was \emph{full}; the evaluator was \emph{strongreject}; the judge model was anthropic:claude-sonnet-4-6.
+\section{Authorship and Tooling Disclosure}
+This project used AI assistance for portions of implementation, figure design, and initial manuscript drafting. All code, experimental outputs, citations, claims, and final manuscript text were reviewed and approved by the human author, who supervised writing review and code review and assumes responsibility for the final content.
 \end{document}

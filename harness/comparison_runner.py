@@ -216,11 +216,17 @@ def summarize(results: Sequence[ModelComparisonResult]) -> list[dict[str, Any]]:
         successes = cr.total_successes
         total = cr.total_probes
         refusals = 0
+        errors = 0
+        partials = 0
         confidences: list[float] = []
         for probe_results in cr.phase_results.values():
             for pr in probe_results:
                 if pr.status == ProbeStatus.FAILED:
                     refusals += 1
+                elif pr.status == ProbeStatus.ERROR:
+                    errors += 1
+                elif pr.status == ProbeStatus.PARTIAL:
+                    partials += 1
                 confidences.append(pr.confidence)
         mean_conf = sum(confidences) / len(confidences) if confidences else 0.0
         summary.append({
@@ -231,8 +237,14 @@ def summarize(results: Sequence[ModelComparisonResult]) -> list[dict[str, Any]]:
                 math.log10(r.spec.params_b) if r.spec.params_b else None
             ),
             "n_probes": total,
+            "n_successes": successes,
+            "n_failures": refusals,
+            "n_errors": errors,
+            "n_partials": partials,
             "success_rate": (successes / total) if total else 0.0,
             "refusal_rate": (refusals / total) if total else 0.0,
+            "error_rate": (errors / total) if total else 0.0,
+            "partial_rate": (partials / total) if total else 0.0,
             "mean_confidence": mean_conf,
             "risk_score": cr.overall_risk_score,
             "duration_s": cr.duration_seconds,

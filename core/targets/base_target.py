@@ -185,7 +185,13 @@ class BaseTarget(abc.ABC):
         normalized = [self._coerce_message(m) for m in messages]
         await self._limiter.acquire()
         start = time.perf_counter()
-        response = await self._retrying_query(normalized, **kwargs)
+        try:
+            response = await self._retrying_query(normalized, **kwargs)
+        except Exception as exc:
+            latency_ms = (time.perf_counter() - start) * 1000.0
+            self._log_failure(normalized, exc, latency_ms)
+            raise
+
         response.latency_ms = (time.perf_counter() - start) * 1000.0
         # Merge any instance-level metadata without clobbering per-call keys.
         for k, v in self.metadata.items():
@@ -299,6 +305,7 @@ class BaseTarget(abc.ABC):
         if self.trajectory_log_path is None:
             return
         record = {
+            "status": "ok",
             "timestamp": response.timestamp,
             "provider": response.provider,
             "model": response.model,
@@ -319,6 +326,46 @@ class BaseTarget(abc.ABC):
                 "Failed to append trajectory log %s: %s",
                 self.trajectory_log_path,
                 exc,
+            )
+
+    def _log_failure(
+        self,
+        messages: Iterable[ConversationMessage],
+        exc: BaseException,
+        latency_ms: float,
+    ) -> None:
+        """Append a failed interaction to the JSONL trajectory log."""
+        if self.trajectory_log_path is None:
+            return
+
+        root_exc = exc.__cause__ if exc.__cause__ is not None else exc
+        record = {
+            "status": "error",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "provider": self.provider,
+            "model": self.model,
+            "messages": [m.model_dump() for m in messages],
+            "response": None,
+            "latency_ms": latency_ms,
+            "prompt_tokens": None,
+            "completion_tokens": None,
+            "total_tokens": None,
+            "finish_reason": None,
+            "metadata": dict(self.metadata),
+            "error": str(root_exc),
+            "error_type": type(root_exc).__name__,
+        }
+        if root_exc is not exc:
+            record["wrapped_error"] = str(exc)
+
+        try:
+            with self.trajectory_log_path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except OSError as log_exc:
+            logger.error(
+                "Failed to append failed trajectory log %s: %s",
+                self.trajectory_log_path,
+                log_exc,
             )
 
     @staticmethod
