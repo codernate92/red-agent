@@ -1,5 +1,10 @@
 \documentclass[11pt]{article}
 
+\usepackage{iftex}
+\ifPDFTeX
+  \pdfoutput=1
+\fi
+
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{lmodern}
@@ -22,7 +27,6 @@
 \usepackage{hyperref}
 \usepackage[nameinlink,noabbrev]{cleveref}
 \usepackage{tikz}
-\usepackage[most]{tcolorbox}
 
 \usetikzlibrary{arrows.meta,positioning,fit,calc,shapes.geometric,shapes.misc}
 
