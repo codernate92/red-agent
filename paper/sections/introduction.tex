@@ -13,6 +13,16 @@ part is often not writing one more jailbreak prompt; it is running a reliable,
 traceable, cross-provider pipeline that distinguishes refusals from execution
 failures and emits outputs suitable for engineering decisions.
 
+As agent capabilities improve and diffuse rapidly, robust red teaming becomes
+more urgent, not less. Frameworks for cross-model jailbreak and risk evaluation
+therefore need continuous updates to reflect current attack techniques and
+deployment contexts. Scope discipline should not exclude domains sometimes
+treated as ``lower risk'' (for example misinformation/disinformation workflows,
+mental-health-adjacent interactions, or sycophancy-like behavioral failures),
+because these areas can still expose meaningful weaknesses that affect future
+testing design, evaluation priorities, and broader risk-assessment frameworks
+\citep{perez2022redteaming,radharapu2023aart,mazeika2024harmbench}.
+
 This paper studies \system, a multi-provider framework organized around four
 ideas:
 \begin{itemize}

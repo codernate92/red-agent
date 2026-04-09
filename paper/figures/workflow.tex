@@ -1,6 +1,7 @@
 \begin{tikzpicture}[
-  stage/.style={rounded corners=3pt, draw=raBlue, fill=raBlue!7, thick, minimum width=0.18\textwidth, minimum height=1.35cm, align=center},
-  metric/.style={rounded corners=3pt, draw=raTeal, fill=raTeal!8, thick, minimum width=0.16\textwidth, minimum height=0.95cm, align=center},
+  font=\footnotesize,
+  stage/.style={rounded corners=3pt, draw=raBlue, fill=raBlue!7, thick, minimum width=0.18\textwidth, text width=0.19\textwidth, minimum height=1.35cm, align=center},
+  metric/.style={rounded corners=3pt, draw=raTeal, fill=raTeal!8, thick, minimum width=0.16\textwidth, text width=0.17\textwidth, minimum height=0.95cm, align=center},
   arrow/.style={-{Latex[length=2.5mm]}, thick, draw=raGray}
 ]
 \node[stage] (s1) at (0,0) {Registry selection\\and target resolution};
@@ -9,8 +10,8 @@
 \node[stage] (s4) at (12.6,0) {Evaluator scoring\\and report synthesis};
 
 \node[metric] (m1) at (4.2,-2.1) {Campaign hit rate\\and refusal rate};
-\node[metric] (m2) at (8.4,-2.1) {Operational error rate\\and blocker class};
-\node[metric] (m3) at (12.6,-2.1) {\sr\ overall\\and risk score};
+\node[metric] (m2) at (8.4,-2.1) {Operational error rate\\and status class};
+\node[metric] (m3) at (12.6,-2.1) {SR overall\\and risk score};
 
 \draw[arrow] (s1) -- (s2);
 \draw[arrow] (s2) -- (s3);
