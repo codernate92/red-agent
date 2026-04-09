@@ -1,0 +1,45 @@
+\section{System Overview}
+\label{sec:system-overview}
+
+\system\ is organized around four layers: target adapters, campaign
+orchestration, analysis/reporting, and the new vulnerability engine. The code
+path is spread across \path{core/}, \path{harness/}, \path{analysis/}, and
+\path{engine/}. The system view in \cref{fig:architecture} highlights the main
+data flow.
+
+\begin{figure*}[t]
+  \centering
+  \resizebox{\textwidth}{!}{\input{figures/architecture}}
+  \caption{High-level architecture of \system. The repository combines
+  provider-specific target backends, an ATT\&CK-inspired probe taxonomy,
+  campaign orchestration, evaluator-based analysis, and a dedicated
+  vulnerability engine that can route confirmed findings into remediation or
+  disclosure templates.}
+  \label{fig:architecture}
+\end{figure*}
+
+The \textbf{target layer} provides a uniform asynchronous interface over
+OpenAI, Anthropic, Google Gemini, Mistral, Together, Ollama, and vLLM-style
+endpoints. These adapters normalize conversation handling, retries, rate
+limits, and JSONL trajectory logging, which lets the rest of the code operate
+over a common \texttt{BaseTarget} abstraction.
+
+The \textbf{campaign layer} supplies a registry of 20 model aliases across five
+providers and eight model families, a 20-technique ATT\&CK-inspired taxonomy,
+and runners for single-model and multi-model campaigns. The stable empirical
+results analyzed in this paper come from this layer: the archived comparison run
+used the existing full campaign path rather than the new engine's recon/attack/
+confirm execution loop.
+
+The \textbf{analysis layer} scores campaign outputs, aggregates CVSS-like
+severity estimates, maps results back to tactic categories, and produces
+publication-oriented artifacts such as heatmaps, comparison tables, and LaTeX
+reports. This is also where the \sr\ evaluator integration lives.
+
+Finally, the \textbf{engine layer} introduces a dedicated vulnerability workflow
+that is more focused than the legacy campaign runner. It adds explicit recon,
+attack-surface ranking, confirmation, batch execution across models, and
+finding routing. Because the engine is now part of the codebase even though the
+archived empirical run predates a full live engine sweep, we describe it as a
+systems contribution in its own right and separate it from the specific results
+section below.

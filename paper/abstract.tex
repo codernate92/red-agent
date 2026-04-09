@@ -1,0 +1,23 @@
+We present \system, a practical framework for red teaming large language models
+across multiple providers while preserving structured trajectories,
+evaluator-grounded scoring, and disclosure-ready outputs. The codebase combines
+provider adapters, an ATT\&CK-inspired probe taxonomy, campaign orchestration,
+JSONL trace logging, automated scoring, and a new vulnerability engine that
+implements recon, focused attack, and confirmation phases. We analyze the
+current repository through a completed archived experiment rather than
+fabricating new runs: a full 20-technique comparison campaign with
+\sr-oriented scoring executed successfully on seven models and was blocked on
+thirteen additional registry aliases due to quota exhaustion, invalid
+credentials, or stale model identifiers. The strongest evaluator-rated
+jailbreak signal came from \texttt{mistral-large} (\sr\ overall $=0.119$),
+while the highest aggregate CVSS-like risk score was assigned to
+\texttt{claude-sonnet-4} ($4.39/10$). Qualitative traces show both reachable
+Mistral models accepting simple override prompts, including a direct
+\texttt{COMPROMISED} response and adoption of an unrestricted
+\texttt{ShadowGPT} persona. The paper's main contribution is therefore twofold:
+it documents a reusable multi-provider red-teaming system, and it shows that
+operational constraints such as quota, credential health, and registry drift are
+first-class variables in any live safety evaluation. We report these findings
+with explicit limitations: the empirical sample is small, the executed run used
+the stable campaign comparison path rather than a live end-to-end engine sweep,
+and the reported size trend is only exploratory.

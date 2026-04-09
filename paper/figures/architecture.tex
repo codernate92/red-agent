@@ -1,0 +1,43 @@
+\begin{tikzpicture}[
+  node distance=8mm and 9mm,
+  box/.style={rounded corners=3pt, draw=#1, fill=#1!8, thick, align=left, inner sep=6pt},
+  arrow/.style={-{Latex[length=2.5mm]}, thick, draw=raGray}
+]
+\node[box=raBlue, minimum width=0.23\textwidth] (registry) {
+  \textbf{Inputs and Adapters}\\[2pt]
+  Model registry\\
+  Provider target backends\\
+  ATT\&CK-inspired taxonomy\\
+  Probe builders
+};
+
+\node[box=raTeal, minimum width=0.25\textwidth, right=of registry] (harness) {
+  \textbf{Execution Layer}\\[2pt]
+  Campaign runner\\
+  Comparison runner\\
+  Trajectory store\\
+  Async rate limiting and retries
+};
+
+\node[box=raGold, minimum width=0.25\textwidth, right=of harness] (engine) {
+  \textbf{Vulnerability Engine}\\[2pt]
+  Recon phase\\
+  Focused attack phase\\
+  Confirmation phase\\
+  Disclosure routing
+};
+
+\node[box=raRed, minimum width=0.22\textwidth, below=of harness] (analysis) {
+  \textbf{Evaluation and Reporting}\\[2pt]
+  \sr\ evaluator\\
+  CVSS-like vulnerability scoring\\
+  Heatmaps and comparison plots\\
+  Publication bundle generation
+};
+
+\draw[arrow] (registry) -- node[above, font=\small]{probe set + target specs} (harness);
+\draw[arrow] (harness) -- node[above, font=\small]{responses + traces} (engine);
+\draw[arrow] (harness) -- node[left, font=\small]{JSONL trajectories} (analysis);
+\draw[arrow] (engine) -- node[right, font=\small]{confirmed findings} (analysis);
+\draw[arrow] (analysis.west) -| ($(registry.south)+(0,-0.6)$) |- node[pos=0.25, below, font=\small]{report feedback and remediation priorities} (registry.south);
+\end{tikzpicture}

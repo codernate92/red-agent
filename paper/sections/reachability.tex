@@ -1,0 +1,43 @@
+\section[Operational Constraints]{Operational Constraints\\and Reachability}
+\label{sec:reachability}
+
+The framework's operational picture is almost as important as its vulnerability
+picture. The model registry contains 20 aliases, but only seven were executed in
+the archived comparison run. \Cref{fig:provider-status} visualizes that
+distribution, and \cref{tab:reachability} summarizes it by provider.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{provider_status.pdf}
+  \caption{Provider-level reachability for the current registry. Successful rows
+  correspond to executed comparison-run models; blocked rows correspond to later
+  preflight failures for the remaining aliases.}
+  \label{fig:provider-status}
+\end{figure}
+
+\begin{table}[t]
+  \centering
+  \caption{Reachability summary over the 20 configured aliases.}
+  \label{tab:reachability}
+  \resizebox{\columnwidth}{!}{\input{tables/reachability_summary}}
+\end{table}
+
+The blocker distribution is lopsided but interpretable. All five Anthropic
+aliases and both Mistral-hosted aliases were reachable in the archived run. By
+contrast, all eight Together-backed aliases failed due to invalid API keys. All
+three OpenAI aliases failed due to insufficient quota. The two Google aliases
+failed for different reasons: \texttt{gemini-2.0-flash} due to quota exhaustion
+and \texttt{gemini-2.5-pro} because the configured preview model identifier had
+gone stale and returned a 404.
+
+This is not just infrastructure noise. Operational reachability determines which
+claims can be made at all. A registry may look broad on paper, but without valid
+credentials, non-expired model identifiers, and adequate quota, that breadth is
+not empirically realized. We therefore treat the 13 blocked aliases as part of
+the study outcome, not as omitted background conditions.
+
+The reachability story also clarifies a methodological point. The paper's
+empirical claims are about the seven executed models. The provider-status table
+extends that view by showing what the surrounding registry looked like when the
+remaining aliases were probed. It should not be misread as a second comparison
+run over all 20 models.

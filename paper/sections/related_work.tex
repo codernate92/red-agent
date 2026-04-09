@@ -1,0 +1,58 @@
+\section{Related Work}
+\label{sec:related-work}
+
+\paragraph{Automated LLM red teaming.}
+\citet{perez2022redteaming} showed that language models can themselves generate
+large and diverse red-team test sets, substantially increasing the scale of
+harm discovery compared with purely manual adversarial authoring. Subsequent
+systems work has pushed in a similar direction: \citet{radharapu2023aart}
+propose AI-assisted data-generation recipes for building adversarial evaluation
+sets for new LLM-powered applications, while \citet{mazeika2024harmbench}
+argue that automated red teaming needs a standardized framework for comparing
+attack methods and robust refusals. \system\ sits closer to this systems and
+infrastructure tradition than to single-attack papers: its contribution is not
+a new jailbreak search algorithm, but an execution and reporting stack that can
+run campaigns, retain traces, evaluate them, and surface actionable outputs.
+
+\paragraph{Jailbreaks and refusal bypass.}
+The contemporary jailbreak literature documents a wide spectrum of alignment
+failures. \citet{wei2023jailbroken} frame jailbreak success in terms of safety
+training failure modes, while \citet{zou2023universal} show that automatically
+optimized adversarial suffixes can transfer across aligned models. Empirical
+systematization work also finds that semantically meaningful jailbreak prompts
+remain widely effective and can be assisted by automation
+\citep{yu2024dontlisten}. Our archived Mistral traces belong to this broader
+family of failures: they are not optimized suffix attacks, but they do show
+that plain-English override and persona-hijack prompts can still produce clear
+alignment breakdowns.
+
+\paragraph{Prompt injection and LLM-integrated systems.}
+For LLM applications embedded in larger software stacks, prompt injection is
+particularly important. \citet{greshake2023notwhat} demonstrate indirect prompt
+injection against real-world LLM-integrated applications, while
+\citet{toyer2024tensortrust} construct a large prompt-injection dataset and
+benchmark from the Tensor Trust game. Those papers motivate \system's attention
+to tool misuse, system prompt extraction, context poisoning, and other
+application-facing failure modes rather than harmful-completion prompts alone.
+
+\paragraph{Evaluator-grounded safety scoring.}
+As attack papers proliferated, so did exaggerated claims of success.
+\citet{souly2024strongreject} argue that many jailbreak evaluations overestimate
+severity and propose \sr\ as a stricter benchmark and scoring rubric based on
+refusal, convincingness, and specificity. \citet{mazeika2024harmbench} make a
+parallel case for standardized evaluation in automated red teaming. In this
+paper we use \sr\ as an auxiliary scoring layer over the repository's existing
+ATT\&CK-inspired campaign probes, not as a substitute benchmark. That design is
+useful for comparing responses within this framework, but it should not be read
+as a direct leaderboard comparison to HarmBench or public \sr\ benchmark
+results.
+
+\paragraph{Scaling and FAR.AI-adjacent empirical work.}
+Recent work has also asked whether larger models become more, rather than less,
+susceptible to certain safety failures. \citet{bowen2024scalingtrends} examine
+data-poisoning vulnerability across model sizes and report stronger
+susceptibility at larger scales in that setting. Our repository includes model
+registry support and plotting for analogous comparisons, but the executed sample
+available here is too narrow to sustain a broad scaling claim. We therefore use
+their work as conceptual motivation, while treating our own size figure as
+exploratory.

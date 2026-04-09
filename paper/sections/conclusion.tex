@@ -1,0 +1,20 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+\system\ is best understood as a practical red-teaming framework rather than as
+a single benchmark result. The repository now contains multi-provider target
+adapters, campaign and comparison runners, evaluator-integrated reporting, and a
+dedicated vulnerability engine with disclosure routing. The archived evidence
+analyzed in this paper supports a narrower empirical claim: among the seven
+reachable models, the strongest evaluator-rated jailbreak behavior appeared in
+the two Mistral runs, while the highest aggregate campaign risk scores appeared
+in the Claude cluster. At the same time, 13 additional aliases were blocked by
+quota, credentials, or registry drift, which materially limited the reachable
+evaluation set.
+
+That combination is the paper's central lesson. A live LLM red-team framework
+needs to measure more than attack success. It also needs to measure which models
+can actually be exercised, under what operational conditions, and with what
+trace fidelity. Future work should execute the new engine end-to-end across a
+broader reachable registry, add human or multi-judge adjudication, and rerun the
+size analysis once more than one family contributes executed size points.

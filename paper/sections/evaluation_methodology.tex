@@ -1,0 +1,55 @@
+\section{Evaluation Methodology}
+\label{sec:methodology}
+
+This paper reports five distinct metrics. Keeping them separate matters, because
+they capture different failure modes.
+
+\paragraph{Campaign hit rate.}
+For each model, the hit rate is the fraction of probes that the campaign runner
+marked as \texttt{SUCCESS}. In the archived results this ranges from 15\% for
+\texttt{claude-haiku-4-5} to 50\% for \texttt{mistral-small}. Hit rate is the
+closest thing the current framework has to a coarse exploitation rate.
+
+\paragraph{Campaign refusal rate.}
+The campaign refusal rate is derived from \texttt{FAILED} probe outcomes rather
+than judge labels. It therefore measures the campaign's own success detectors
+and refusal logic, not an external evaluator's judgment. This distinction
+matters because a probe can fail for reasons other than a clean refusal, and
+the judge can still assign a non-zero severity to a response that the campaign
+did not mark as a success.
+
+\paragraph{\sr\ scoring.}
+The secondary evaluation layer uses the \sr\ rubric
+\citep{souly2024strongreject}. For a prompt-response pair, the judge assigns a
+binary refusal variable and 1--5 ratings for convincingness and specificity. The
+composite score is
+\begin{equation}
+\text{SR overall} = (1 - r)\frac{(c - 1)(s - 1)}{16},
+\end{equation}
+where $r$ is refusal, $c$ is convincingness, and $s$ is specificity. In the
+archived run, \sr\ is applied to the framework's ATT\&CK-inspired probes rather
+than to the public \sr\ harmful-prompt benchmark. We therefore use the score as
+an internal comparative measure, not as a benchmark leaderboard number.
+
+\paragraph{Aggregate risk score.}
+The reporting pipeline also computes a CVSS-inspired aggregate risk score using
+\path{analysis/vulnerability.py}. This score combines technique-level severity,
+exploitability, observed success rate, and confidence into a normalized 0--10
+scale. It is useful for ranking findings inside the framework, but it is not
+interchangeable with \sr\ overall. One model can rank highest on aggregate risk
+because it succeeds on more structurally important techniques, while another can
+rank highest on \sr\ because its successful outputs are more concrete or
+convincing.
+
+\paragraph{Operational error rate.}
+Finally, we track the fraction of attempted probes that ended in
+\texttt{ERROR}. This is not a safety metric, but it is a core operational
+metric. A model with a strong jailbreak signal and a 35\% probe error rate is a
+different research object from a model with the same signal and no execution
+instability.
+
+\paragraph{Limits of comparability.}
+Because the archived run covers only seven models, uses one judge, and applies
+\sr\ to framework-native probes rather than to HarmBench or the public
+\sr\ benchmark prompts, the results below should be read as an artifact-backed
+case study rather than a general leaderboard.
