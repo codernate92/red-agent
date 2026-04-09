@@ -15,6 +15,7 @@ The \texttt{full} campaign expands the ATT\&CK-inspired taxonomy into 20 probes
 organized by tactic category (reconnaissance, resource development, initial
 access, privilege escalation, defense evasion, persistence, exfiltration,
 impact, and goal hijacking). Each model receives the same 20 attempted probes.
+The exact technique list is provided in \cref{sec:appendix}.
 
 \paragraph{Trace capture and reporting.}
 Each interaction is logged to per-model JSONL files under
@@ -24,9 +25,9 @@ plots, and LaTeX tables) are generated under
 \path{reports/publication_run/latex_quality/}.
 
 \paragraph{Evaluator configuration.}
-This refreshed run focuses on campaign metrics and aggregate risk outputs from
-the framework pipeline. Evaluator-specific comparisons are intentionally left
-for a dedicated follow-up run with a fixed judge model and budget.
+This refreshed run reports campaign metrics and aggregate risk outputs from the
+framework pipeline, plus post-hoc \sr-style scoring on archived traces using a
+fixed judge specification (no target-probe rerun) \citep{souly2024strongreject}.
 
 \paragraph{Operational status table.}
 Provider preflight status is generated with

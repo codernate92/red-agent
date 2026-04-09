@@ -1,14 +1,13 @@
-We present \system, a practical framework for red teaming large language models
-across multiple providers while preserving structured trajectories and
-publication-ready outputs. The codebase combines provider adapters, an
-ATT\&CK-inspired probe taxonomy, campaign orchestration, JSONL trace logging,
-and automated scoring. This paper reports a refreshed artifact-backed run over
-an 11-model curated registry (OpenAI, Anthropic, Google, and Mistral), with a
-full 20-probe campaign per model and complete preflight reachability for all
-configured aliases. The highest aggregate CVSS-like risk score appears on
-\texttt{gemini-2.5-pro} ($7.60/10$), while the highest campaign hit rate appears
-on \texttt{mistral-small} (75\%). OpenAI and Claude aliases show lower hit rates
-but stable execution, whereas Gemini and Mistral variants show higher error
-variance across probes. The main contribution is a reproducible, end-to-end
-multi-provider red-teaming workflow with transparent operational accounting and
-artifact-complete reporting suitable for manuscript submission.
+We present \system, a practical multi-provider framework for LLM red teaming
+focused on reliable cross-model execution, artifact completeness, and
+reproducible reporting. The empirical results in this paper come from a curated
+11-model run using a stable campaign runner over a fixed 20-probe
+ATT\&CK-inspired taxonomy. We pair model outcomes with operational
+reachability and error accounting to separate safety behavior from execution
+brittleness. To add evaluator context, we apply post-hoc \sr\ scoring to
+archived trajectories without rerunning probes. The resulting artifact set
+includes per-model reports, JSONL traces, summary tables, and
+publication-ready figures. We also describe a newer vulnerability engine
+(recon, focused attack, confirmation) as an implemented next-stage extension;
+its dedicated end-to-end benchmark remains future work. This release emphasizes
+transparent, auditable red-teaming operations rather than benchmark novelty.

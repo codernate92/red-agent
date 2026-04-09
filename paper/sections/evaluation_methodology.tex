@@ -5,23 +5,52 @@ This paper reports four primary metrics from the campaign pipeline.
 
 \paragraph{Campaign hit rate.}
 For each model, hit rate is the fraction of probes marked as
-\texttt{SUCCESS} by the campaign runner.
+\texttt{SUCCESS} by the campaign runner:
+\[
+\text{hit\_rate} = \frac{n_{\text{success}}}{n_{\text{probes}}}.
+\]
 
 \paragraph{Campaign refusal rate.}
 Refusal rate is derived from campaign outcomes marked as
-\texttt{FAILED}. It reflects framework refusal logic rather than external
-human labeling.
+\texttt{FAILED}:
+\[
+\text{refusal\_rate} = \frac{n_{\text{failed}}}{n_{\text{probes}}}.
+\]
+This reflects framework-native refusal logic rather than external human
+labeling. In the default runner path, refusal is assigned when a probe does
+not meet exploitation success criteria after heuristic response checks (for
+example compliance and refusal indicators) in the probe evaluator
+\footnote{\path{harness/runner.py}, \texttt{\_default\_success\_detector}.}.
+This is intentionally distinct from benchmark-focused judge rubrics such as
+\sr\ and HarmBench \citep{souly2024strongreject,mazeika2024harmbench}.
 
 \paragraph{Aggregate risk score.}
 The reporting pipeline computes a CVSS-inspired aggregate risk score using
-\path{analysis/vulnerability.py}. This combines technique-level severity,
-exploitability, observed success rate, and confidence into a normalized 0--10
-ranking signal.
+\path{harness/runner.py}. For each successful probe $i$, a weighted score is
+computed from technique severity and probe confidence:
+\[
+s_i = b_i \cdot \max(c_i, 0.5),
+\]
+where $b_i \in \{9.5, 7.5, 5.0, 2.0\}$ for
+\{critical, high, medium, low\} severity, and $c_i \in [0,1]$ is probe
+confidence. The model-level aggregate risk score is then:
+\[
+\text{risk\_score} = \min\!\left(10,\; \frac{1}{|S|}\sum_{i \in S} s_i\right),
+\]
+where $S$ is the set of successful probes for that model
+\footnote{\path{harness/runner.py}, \texttt{\_compute\_risk\_score}.}.
 
 \paragraph{Operational error rate.}
 Error rate is the fraction of probes ending in \texttt{ERROR}. This is an
 operational reliability metric, not a direct safety metric, but it materially
 affects interpretation of model-level findings.
+\[
+\text{error\_rate} = \frac{n_{\text{error}}}{n_{\text{probes}}}.
+\]
+All rates in this paper use the same denominator ($n_{\text{probes}}$), where
+$n_{\text{probes}} = n_{\text{success}} + n_{\text{failed}} + n_{\text{error}} + n_{\text{partial}}$.
+This means high error rates directly suppress achievable hit/refusal rates and
+must be interpreted jointly with risk scores.
 
 \paragraph{Limits of comparability.}
 Because this run is tied to a curated registry and framework-native probes, the
@@ -38,7 +67,8 @@ best read as a systems-and-operations study with benchmark-informed framing,
 not as a benchmark leaderboard claim.
 
 \paragraph{Evaluator status in this artifact set.}
-The refreshed 11-model artifact set emphasizes campaign execution and aggregate
-risk reporting. A dedicated evaluator-enabled rerun (for example
-\texttt{--evaluate strongreject} with a fixed judge model) is a planned
-follow-up and would be required for definitive \sr\ comparisons.
+The refreshed 11-model artifact set includes post-hoc evaluator overlays on the
+archived traces (without rerunning target-model probes), using a fixed judge
+configuration for \sr-style scoring. This supports within-artifact
+comparisons, while definitive benchmark-leaderboard claims would still require
+a dedicated benchmark-aligned rerun on the canonical prompt distributions.

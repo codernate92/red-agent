@@ -10,7 +10,9 @@ view, and \cref{tab:model-summary} reports the exact model-level values.
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.98\textwidth]{overview_dashboard.pdf}
-  \caption{Overview dashboard for the curated 11-model run.}
+  \caption{Overview dashboard for the curated 11-model run. In the frontier
+  panel, ``judge compliance'' denotes target-model compliance as assessed by
+  the evaluator, not compliance behavior of the judge model itself.}
   \label{fig:dashboard}
 \end{figure}
 
@@ -27,6 +29,11 @@ the highest aggregate risk score (7.60) but also the highest probe error rate
 highest campaign hit rates (75\% and 50\%, respectively). Third, the Claude and
 OpenAI clusters are operationally stable (near-zero error rates) with lower hit
 rates than Mistral.
+
+Because hit, refusal, and error rates all use total probes as denominator
+(\cref{sec:methodology}), high error incidence reduces the attainable hit/refusal
+mass for a model and should be read as operational brittleness rather than
+direct evidence of stronger refusal behavior.
 
 These metrics should be interpreted jointly. A high hit rate alone does not
 imply highest aggregate risk, and a high risk score can coincide with a brittle
@@ -49,7 +56,8 @@ and it makes Gemini's elevated error profile immediately visible.
 
 The heatmap intentionally foregrounds campaign-native metrics. Benchmark-facing
 evaluator analysis (for example \sr{}) is discussed in
-\cref{sec:methodology} and remains future work for this specific artifact set.
+\cref{sec:methodology} and is reported here as post-hoc evaluator overlays on
+the same archived traces.
 
 \subsection{Comparative evaluator analysis}
 
@@ -74,8 +82,8 @@ artifacts are available.
 Qualitative trajectory excerpts remain consistent with the quantitative summary.
 In the Mistral traces, low-complexity override and persona-hijack prompts still
 produce concrete unsafe behaviors (for example explicit override acknowledgments
-and unrestricted persona adoption). These cases are drawn from stored JSONL
-artifacts, not synthetic examples.
+and unrestricted persona adoption). \Cref{fig:qualitative-case} shows compact
+examples drawn from stored JSONL artifacts, not synthetic examples.
 
 \begin{figure}[t]
   \centering
@@ -83,19 +91,3 @@ artifacts, not synthetic examples.
   \caption{Compact case study drawn directly from archived JSONL trajectories.}
   \label{fig:qualitative-case}
 \end{figure}
-
-\subsection{Exploratory size trend}
-
-\Cref{fig:scaling} plots aggregate risk against log-parameter count for
-size-annotated models in the run.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\columnwidth]{scaling_plot.pdf}
-  \caption{Exploratory size trend for the current curated run.}
-  \label{fig:scaling}
-\end{figure}
-
-The figure remains exploratory. The strongest multi-point size coverage is still
-within the Mistral family, so broad scaling conclusions across all families are
-not warranted from this run alone.

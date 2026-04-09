@@ -48,7 +48,7 @@ FAMILY_COLORS = {
 FIGURE_FORMATS = (".png", ".pdf", ".svg")
 DISCLOSURE_TEXT = (
     "This project used AI assistance for portions of implementation, figure "
-    "design, and initial manuscript drafting. All code, experimental outputs, "
+    "design, and manuscript drafting. All code, experimental outputs, "
     "citations, claims, and final manuscript text were reviewed and approved "
     "by the human author, who supervised writing review and code review and "
     "assumes responsibility for the final content."
@@ -400,7 +400,7 @@ def _draw_frontier(ax: Any, summary_rows: list[dict[str, Any]], *, title: str) -
         _outline_text(text)
 
     ax.set_title(title)
-    ax.set_xlabel("Judge compliance rate (1 - refusal)")
+    ax.set_xlabel("Target-model compliance rate (1 - judge-scored refusal)")
     ax.set_ylabel("StrongREJECT overall score")
     ax.set_xlim(-0.02, 0.52)
     ax.set_ylim(0.0, max(0.15, max(ys, default=0.0) + 0.025))
