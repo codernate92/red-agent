@@ -26,7 +26,7 @@ class MistralTarget(BaseTarget):
     ) -> None:
         super().__init__(model, **kwargs)
         try:
-            from mistralai import Mistral as _Mistral
+            from mistralai.client import Mistral as _Mistral
             import mistralai as _mistralai_module
         except ImportError as exc:  # pragma: no cover
             raise TargetError(

@@ -258,6 +258,10 @@ class BaseTarget(abc.ABC):
                     timeout=self.request_timeout,
                 )
             except self.RETRIABLE_EXCEPTIONS as exc:
+                if not self._should_retry_exception(exc):
+                    raise TargetError(
+                        f"{self.provider}:{self.model} query failed: {exc}"
+                    ) from exc
                 last_exc = exc
                 delay = min(
                     self.max_delay,
@@ -282,6 +286,10 @@ class BaseTarget(abc.ABC):
             f"{self.provider}:{self.model} query failed after "
             f"{self.max_retries} retries: {last_exc}"
         )
+
+    def _should_retry_exception(self, exc: BaseException) -> bool:
+        """Return whether a retriable exception should actually be retried."""
+        return True
 
     def _log_trajectory(
         self,

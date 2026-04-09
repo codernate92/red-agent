@@ -144,3 +144,13 @@ class GoogleTarget(BaseTarget):
             finish_reason=finish_reason,
             metadata=md,
         )
+
+    def _should_retry_exception(self, exc: BaseException) -> bool:
+        message = str(exc).lower()
+        hard_fail_markers = (
+            "resource_exhausted",
+            "quota exceeded",
+            "limit: 0",
+            "api key not valid",
+        )
+        return not any(marker in message for marker in hard_fail_markers)

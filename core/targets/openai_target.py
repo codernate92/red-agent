@@ -89,3 +89,13 @@ class OpenAITarget(BaseTarget):
             finish_reason=getattr(choice, "finish_reason", None),
             raw=completion.model_dump() if hasattr(completion, "model_dump") else {},
         )
+
+    def _should_retry_exception(self, exc: BaseException) -> bool:
+        message = str(exc).lower()
+        hard_fail_markers = (
+            "insufficient_quota",
+            "invalid_api_key",
+            "incorrect api key",
+            "exceeded your current quota",
+        )
+        return not any(marker in message for marker in hard_fail_markers)

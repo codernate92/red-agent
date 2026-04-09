@@ -68,15 +68,27 @@ MODEL_REGISTRY: dict[str, ModelSpec] = {
         params_b=None,
         family="claude",
     ),
-    "claude-3-5-sonnet": ModelSpec(
+    "claude-sonnet-4-6": ModelSpec(
         provider="anthropic",
-        model="claude-3-5-sonnet-latest",
+        model="claude-sonnet-4-6",
         params_b=None,
         family="claude",
     ),
-    "claude-3-5-haiku": ModelSpec(
+    "claude-sonnet-4-5": ModelSpec(
         provider="anthropic",
-        model="claude-3-5-haiku-latest",
+        model="claude-sonnet-4-5-20250929",
+        params_b=None,
+        family="claude",
+    ),
+    "claude-haiku-4-5": ModelSpec(
+        provider="anthropic",
+        model="claude-haiku-4-5-20251001",
+        params_b=None,
+        family="claude",
+    ),
+    "claude-opus-4-6": ModelSpec(
+        provider="anthropic",
+        model="claude-opus-4-6",
         params_b=None,
         family="claude",
     ),
