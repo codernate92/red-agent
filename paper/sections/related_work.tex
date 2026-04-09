@@ -47,6 +47,20 @@ useful for comparing responses within this framework, but it should not be read
 as a direct leaderboard comparison to HarmBench or public \sr\ benchmark
 results.
 
+\paragraph{Systematic and socio-technical perspectives.}
+Recent 2026 work broadens red teaming beyond attack-success reporting alone.
+\citet{srivastava2026systematicredteaming} provide a broad systematic review of
+algorithmic red-teaming methods for scalable assurance workflows, while
+\citet{seghid2026emergingthreats} situate red teaming inside a wider misuse and
+governance taxonomy spanning security, disinformation, and human-harm domains.
+Human-centered analysis also matters for methodological validity:
+\citet{alvaradogarcia2026sociotechnical} show that practitioner assumptions and
+dataset-construction practices can introduce blind spots in what risks are
+measured. Complementary accessibility-focused TEVV work
+\citep{waters2026accessibilitytevv} argues that adversarial evaluation should
+explicitly include disability- and access-related failure modes rather than
+treating them as out-of-scope edge cases.
+
 \paragraph{Scaling and FAR.AI-adjacent empirical work.}
 Recent work has also asked whether larger models become more, rather than less,
 susceptible to certain safety failures. \citet{bowen2024scalingtrends} examine
@@ -86,4 +100,7 @@ continuous, technique-adaptive, and broad in scope, including domains often
 treated as lower-priority (for example misinformation/disinformation pathways,
 mental-health-adjacent interactions, and sycophancy-like behavioral failures),
 because those behaviors can still surface policy-relevant weaknesses and shape
-future evaluation frameworks.
+future evaluation frameworks. Related agentic-system analyses
+\citep{radanliev2026agenticthreats} further support expanding threat models
+beyond single-turn prompt perturbations toward executive-layer and closed-loop
+failure modes.
