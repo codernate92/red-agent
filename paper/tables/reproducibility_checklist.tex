@@ -7,6 +7,8 @@ Primary empirical artifact & \path{reports/publication_run/comparison.json} \\
 Operational status artifact & \path{reports/publication_run/provider_status.json} and derived CSV \\
 Per-model reports & \path{reports/publication_run/per_model/*.json} \\
 Trajectory logs & \path{trajectories/publication_run/*.jsonl} \\
+Required credentials & \texttt{OPENAI\_API\_KEY}, \texttt{ANTHROPIC\_API\_KEY}, \texttt{GOOGLE\_API\_KEY}, \texttt{MISTRAL\_API\_KEY}; optional \texttt{TOGETHER\_API\_KEY} \\
+Colab key loading & In Google Colab, load credentials from Secrets into environment variables before running \texttt{cli.py compare} (for example via \texttt{from google.colab import userdata; os.environ[...]=userdata.get(...)}). \\
 Figure generation & \path{analysis/publication_report.py} \\
 Preflight generation & \path{analysis/provider_status.py} \\
 Paper build tool & \texttt{tectonic main.tex} \\
