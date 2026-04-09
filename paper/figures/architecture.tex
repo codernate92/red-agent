@@ -1,14 +1,14 @@
 \begin{tikzpicture}[
   node distance=8mm and 9mm,
-  font=\footnotesize,
-  box/.style={rounded corners=3pt, draw=#1, fill=#1!8, thick, align=left, inner sep=6pt, text width=0.215\textwidth},
+  font=\scriptsize,
+  box/.style={rounded corners=3pt, draw=#1, fill=#1!8, thick, align=left, inner sep=5pt, text width=0.20\textwidth},
   arrow/.style={-{Latex[length=2.5mm]}, thick, draw=raGray}
 ]
 \node[box=raBlue] (registry) {
   \textbf{Inputs and Adapters}\\[2pt]
   Model registry\\
-  Provider target backends\\
-  ATT\&CK-inspired taxonomy\\
+  Provider backends\\
+  ATT\&CK-style taxonomy\\
   Probe builders
 };
 
@@ -17,7 +17,7 @@
   Campaign runner\\
   Comparison runner\\
   Trajectory store\\
-  Async rate limiting and retries
+  Async retries and limits
 };
 
 \node[box=raGold, right=of harness] (engine) {
@@ -32,13 +32,13 @@
   \textbf{Evaluation and Reporting}\\[2pt]
   \sr\ evaluator\\
   CVSS-like vulnerability scoring\\
-  Heatmaps and comparison plots\\
+  Heatmaps and comparisons\\
   Publication bundle generation
 };
 
-\draw[arrow] (registry) -- node[above, font=\scriptsize]{probe set + specs} (harness);
-\draw[arrow] (harness) -- node[above, font=\scriptsize]{responses + traces} (engine);
-\draw[arrow] (harness) -- node[left, font=\scriptsize]{JSONL trajectories} (analysis);
-\draw[arrow] (engine) -- node[right, font=\scriptsize]{confirmed findings} (analysis);
-\draw[arrow] (analysis.west) -| ($(registry.south)+(0,-0.6)$) |- node[pos=0.25, below, font=\scriptsize]{feedback + remediation priorities} (registry.south);
+\draw[arrow] (registry) -- (harness);
+\draw[arrow] (harness) -- (engine);
+\draw[arrow] (harness) -- (analysis);
+\draw[arrow] (engine) -- (analysis);
+\draw[arrow] (analysis.west) -| ($(registry.south)+(0,-0.6)$) |- (registry.south);
 \end{tikzpicture}

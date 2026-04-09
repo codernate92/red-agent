@@ -27,3 +27,18 @@ affects interpretation of model-level findings.
 Because this run is tied to a curated registry and framework-native probes, the
 results should be interpreted as an artifact-backed case study rather than a
 general benchmark leaderboard.
+
+\paragraph{Benchmark context (ClearHarm and \sr).}
+This run is not a direct benchmark evaluation on ClearHarm
+\citep{hollinsworth2025clearharm} or the original \sr\ prompt sets
+\citep{souly2024strongreject}. Instead, it uses the framework's ATT\&CK-inspired
+20-probe campaign and reports campaign-native outcomes (hit, refusal, risk,
+error) over that prompt distribution. In practical terms, the current paper is
+best read as a systems-and-operations study with benchmark-informed framing,
+not as a benchmark leaderboard claim.
+
+\paragraph{Evaluator status in this artifact set.}
+The refreshed 11-model artifact set emphasizes campaign execution and aggregate
+risk reporting. A dedicated evaluator-enabled rerun (for example
+\texttt{--evaluate strongreject} with a fixed judge model) is a planned
+follow-up and would be required for definitive \sr\ comparisons.

@@ -1,6 +1,6 @@
 # red-agent
 
-Authorized red-teaming framework for LLMs and agentic systems. It runs structured adversarial campaigns, scores findings with CVSS-like severity and StrongREJECT-style evaluator outputs, and compares behavior across providers and model scales.
+Red-teaming framework for LLMs and agentic systems. It runs structured adversarial campaigns, scores findings with CVSS-like severity and StrongREJECT-style evaluator outputs, and compares behavior across providers and model scales.
 
 ## What it does
 
@@ -120,6 +120,38 @@ python cli.py demo --target realistic
 
 The report generator is [`analysis/report.py`](/Users/nathanheath/red-agent/analysis/report.py).
 
+Evaluate an existing comparison artifact with StrongREJECT (no probe rerun):
+
+```bash
+python3 -m analysis.evaluate_existing \
+  --input reports/publication_run/comparison.json \
+  --output-json reports/publication_run/comparison_with_sr.json \
+  --output-csv reports/publication_run/sr_summary.csv \
+  --evaluate strongreject \
+  --judge openai:gpt-4o-mini
+```
+
+Run a ClearHarm-style prompt benchmark from a JSONL prompt file:
+
+```bash
+python3 -m analysis.clearharm_runner \
+  --aliases gpt-4o,gpt-4o-mini,gpt-4-turbo,claude-sonnet-4,claude-sonnet-4-6,claude-sonnet-4-5,claude-haiku-4-5,claude-opus-4-6,gemini-2.5-pro,mistral-small,mistral-large \
+  --clearharm-file data/clearharm_prompts.jsonl \
+  --output reports/clearharm_run/comparison.json \
+  --trajectory-dir trajectories/clearharm_run \
+  --evaluate strongreject \
+  --judge openai:gpt-4o-mini
+```
+
+Generate comparative analysis visual:
+
+```bash
+python3 -m analysis.benchmark_compare \
+  --input reports/publication_run/comparison_with_sr.json \
+  --clearharm reports/clearharm_run/comparison.json \
+  --output reports/publication_run/latex_quality/plots/comparative_benchmark.png
+```
+
 ## Testing
 
 Run the suite with:
@@ -132,7 +164,7 @@ The tests cover campaign execution, taxonomy behavior, reporting, evaluator aggr
 
 ## Intended Use
 
-This repository is for authorized security research and defensive evaluation only. Use it to assess systems you own, operate, or are explicitly permitted to test.
+This repository is for defensive model evaluation, academic experimentation, and research. Run experiments only through documented APIs, open-access model endpoints, or locally hosted models, and follow applicable provider terms.
 
 ## License
 

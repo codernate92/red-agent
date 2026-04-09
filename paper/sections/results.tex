@@ -33,6 +33,42 @@ imply highest aggregate risk, and a high risk score can coincide with a brittle
 execution profile. The practical value of the framework is in exposing that
 tradeoff explicitly.
 
+\subsection{Cross-model metric heatmap}
+
+To make cross-model tradeoffs easier to scan, \cref{fig:metric-heatmap} shows
+the consolidated metric heatmap from the publication bundle. This view highlights
+the contrast between higher-hit Mistral runs and lower-error Claude/OpenAI runs,
+and it makes Gemini's elevated error profile immediately visible.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{metric_heatmap.pdf}
+  \caption{Cross-model metric heatmap for the curated run.}
+  \label{fig:metric-heatmap}
+\end{figure}
+
+The heatmap intentionally foregrounds campaign-native metrics. Benchmark-facing
+evaluator analysis (for example \sr{}) is discussed in
+\cref{sec:methodology} and remains future work for this specific artifact set.
+
+\subsection{Comparative evaluator analysis}
+
+To bridge campaign-native and judge-based views, we additionally ran
+\sr{} scoring over the stored response traces (without rerunning probes) and
+generated a comparative multi-panel visualization. \Cref{fig:comparative}
+combines frontier-style tradeoff plots, normalized metric profiles, and a
+benchmark-ready panel that can be populated with a ClearHarm run when those
+artifacts are available.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{comparative_benchmark.pdf}
+  \caption{Comparative analysis combining campaign outcomes and judge metrics.
+  The right-hand benchmark panel is designed to support baseline-versus-ClearHarm
+  overlays once ClearHarm run artifacts are provided.}
+  \label{fig:comparative}
+\end{figure*}
+
 \subsection{Qualitative traces}
 
 Qualitative trajectory excerpts remain consistent with the quantitative summary.
