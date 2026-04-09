@@ -1,2 +1,14 @@
 __pycache__/
 *.pyc
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Experiment outputs
+reports/
+trajectories/
+*.jsonl
+red-agent-report-*.json
+red-agent-report-*.md

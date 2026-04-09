@@ -1,97 +1,142 @@
 # red-agent
 
-Adversarial red-teaming framework for AI agents. Systematically probes autonomous systems for exploitable behaviors using an ATT&CK-inspired taxonomy, adaptive campaign execution, and CVSS-analog vulnerability scoring.
+Authorized red-teaming framework for LLMs and agentic systems. It runs structured adversarial campaigns, scores findings with CVSS-like severity and StrongREJECT-style evaluator outputs, and compares behavior across providers and model scales.
 
-## Overview
+## What it does
 
-red-agent treats AI agent security evaluation the way penetration testing treats network security: structured, repeatable, and comprehensive. It provides a taxonomy of 20 attack techniques across 9 tactic categories, 39 pre-built attack probes, and an adaptive campaign runner that escalates based on discovered vulnerabilities.
+- Runs ATT&CK-inspired prompt-injection, exfiltration, privilege-escalation, persistence, goal-hijacking, and defense-evasion probes.
+- Supports real model backends through OpenAI, Anthropic, Google Gemini, Mistral, Together, Ollama, and vLLM.
+- Logs model interactions to JSONL for auditability.
+- Produces JSON and Markdown reports with vulnerability scoring, attack-surface summaries, and optional evaluator aggregates.
+- Compares model families using the shared registry in [`core/model_registry.py`](/Users/nathanheath/red-agent/core/model_registry.py).
 
-## Architecture
+## Layout
 
-```
+```text
 red-agent/
-  core/           # Taxonomy, probes, campaigns, targets, trajectory capture
-  attacks/        # 6 attack suites with 39 probes
-  harness/        # Campaign runner with adaptive escalation
-  analysis/       # Vulnerability scoring, attack surface mapping, reports
-  tests/          # 26 passing tests
-  cli.py          # CLI with demo, scan, analyze, techniques commands
+  analysis/    evaluator logic, attack-surface maps, reports, scoring
+  attacks/     adversarial probe suites
+  core/        taxonomy, targets, registry, probes, campaigns, trajectories
+  harness/     campaign and comparison runners
+  tests/       pytest coverage for core behavior
+  cli.py       command-line entrypoint
 ```
 
-## Attack Taxonomy
+## Installed Capabilities
 
-Inspired by MITRE ATT&CK, adapted for AI agents:
+### Targets
 
-| Tactic | Techniques | Description |
-|--------|-----------|-------------|
-| Reconnaissance | 3 | Probe agent capabilities, tool permissions, safety boundaries |
-| Resource Development | 2 | Craft adversarial personas and obfuscated payloads |
-| Initial Access | 2 | Direct and indirect prompt injection |
-| Privilege Escalation | 2 | Social engineering for tool access, argument injection |
-| Defense Evasion | 3 | Jailbreaks, multi-turn escalation, encoding bypasses |
-| Persistence | 2 | Context window poisoning, memory/state injection |
-| Exfiltration | 3 | System prompt extraction, training data probing |
-| Impact | 1 | Output format manipulation |
-| Goal Hijacking | 2 | Instruction override, persona hijacking |
+- `openai`
+- `anthropic`
+- `google`
+- `mistral`
+- `together`
+- `ollama`
+- `vllm`
 
-## Attack Suites
+All provider wrappers inherit from [`core/targets/base_target.py`](/Users/nathanheath/red-agent/core/targets/base_target.py) and share retry/backoff, optional request-rate limiting, timeout handling, and JSONL trajectory logging.
 
-- **Prompt Injection** (8 probes) — delimiter escapes, nested injection, multi-language payloads
-- **Privilege Escalation** (6 probes) — authority impersonation, tool argument manipulation, chained escalation
-- **Goal Hijacking** (6 probes) — gradual persona shift, conflicting instructions, fake system updates
-- **Exfiltration** (7 probes) — completion attacks, translation tricks, structured extraction
-- **Defense Evasion** (7 probes) — DAN jailbreaks, academic framing, base64/ROT13 obfuscation
-- **Persistence** (5 probes) — context poisoning, memory injection, conversation hijacking
+### Evaluators
 
-## Campaign Execution
+- `strongreject`
+- `sentiment`
+- `code_backdoor`
 
-Campaigns run probes in phases with configurable escalation strategies:
+Evaluator interfaces live under [`analysis/evaluators/`](/Users/nathanheath/red-agent/analysis/evaluators) and can be attached to both `scan` and `compare`.
 
-- **Linear** — run all probes in order
-- **Adaptive** — skip/add probes based on results
-- **Depth-first** — exploit successful vectors deeper
-- **Breadth-first** — cover all tactic categories before deepening
+### Registry
 
-## Quick Start
+The current registry includes:
+
+- OpenAI closed: `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`
+- OpenAI open-weight: `gpt-oss-120b`
+- Anthropic: `claude-sonnet-4`, `claude-3-5-sonnet`, `claude-3-5-haiku`
+- Google: `gemini-2.5-pro`, `gemini-2.0-flash`
+- Llama 3.1: `llama-3.1-8b`, `llama-3.1-70b`, `llama-3.1-405b`
+- Gemma 2: `gemma-2-9b`, `gemma-2-27b`
+- Mistral family: `mistral-nemo`, `mistral-small`, `mistral-large`
+- Mixtral: `mixtral-8x22b`
+
+Use `python cli.py targets` to see the active list plus API-key status.
+
+## Setup
+
+Install dependencies:
 
 ```bash
-# Run the demo against a mock target
-python cli.py demo
-
-# Run a full campaign against a target
-python cli.py scan --target my_agent --campaign full
-
-# List available techniques
-python cli.py techniques --list
-
-# Analyze saved results
-python cli.py analyze --results results.json --format markdown
+python3 -m pip install -r requirements.txt
 ```
 
-## Vulnerability Scoring
+Create a local `.env` from [`.env.example`](/Users/nathanheath/red-agent/.env.example). `cli.py` loads it automatically with `python-dotenv` before target construction.
 
-Each discovered vulnerability receives a CVSS-analog score (0-10) factoring in:
+Relevant variables:
 
-- Technique severity and detection difficulty
-- Reproduction success rate across probes
-- Confidence level from success detectors
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+- `GOOGLE_API_KEY`
+- `MISTRAL_API_KEY`
+- `TOGETHER_API_KEY`
+- Optional: `VLLM_BASE_URL`, `OLLAMA_BASE_URL`
 
-Reports include remediation recommendations per vulnerability.
+## CLI
+
+List targets:
+
+```bash
+python cli.py targets
+```
+
+Single-model scan:
+
+```bash
+python cli.py scan --target gpt-4o-mini --campaign quick
+python cli.py scan --target llama-3.1-70b --campaign full --trajectory-log trajectories/llama-3.1-70b.jsonl
+python cli.py scan --target gpt-oss-120b --campaign quick --evaluate strongreject
+```
+
+Cross-model comparison:
+
+```bash
+python cli.py compare --family llama-3.1 --campaign quick
+python cli.py compare --targets llama-3.1-8b,llama-3.1-70b,gpt-oss-120b --campaign quick --evaluate strongreject --reports-dir reports/
+```
+
+Existing-result analysis:
+
+```bash
+python cli.py analyze --results reports/example.json --format markdown
+```
+
+Offline demo:
+
+```bash
+python cli.py demo --target realistic
+```
+
+## Reporting
+
+`scan` and `compare` can emit:
+
+- JSON campaign or comparison output
+- Markdown reports per model
+- StrongREJECT-style aggregates when `--evaluate` is enabled
+- JSONL trajectory logs for every prompt/response exchange
+
+The report generator is [`analysis/report.py`](/Users/nathanheath/red-agent/analysis/report.py).
 
 ## Testing
 
+Run the suite with:
+
 ```bash
-pytest tests/ -v  # 26 tests
+python3 -m pytest -q
 ```
+
+The tests cover campaign execution, taxonomy behavior, reporting, evaluator aggregation, and registry resolution.
 
 ## Intended Use
 
-This framework is designed for **authorized security evaluation** of AI systems. It is intended for:
-
-- AI safety researchers evaluating model robustness
-- Red teams conducting authorized assessments of deployed agents
-- Organizations testing their AI systems before deployment
-- Academic research on adversarial robustness
+This repository is for authorized security research and defensive evaluation only. Use it to assess systems you own, operate, or are explicitly permitted to test.
 
 ## License
 

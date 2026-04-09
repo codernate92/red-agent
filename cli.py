@@ -15,10 +15,20 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import sys
 import time
 from pathlib import Path
 from typing import Any
+
+# Load .env BEFORE any target factory reads os.environ. We do this at import
+# time so every code path (scan, compare, targets, tests) picks up local keys
+# without having to remember to call load_dotenv() themselves.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=False)
+except ImportError:  # pragma: no cover — optional dep
+    pass
 
 from core.campaign import (
     CampaignConfig,
@@ -27,7 +37,24 @@ from core.campaign import (
     EscalationStrategy,
 )
 from core.probe import Probe, ProbeBuilder, ProbeResult, ProbeStatus
-from core.target import MockTarget, TargetProfile
+from core.target import MockTarget, TargetAgent, TargetProfile
+from core.targets import (
+    TargetConfig,
+    create_target,
+    parse_target_spec,
+)
+from core.targets.base_target import TargetError
+from core.model_registry import (
+    MODEL_REGISTRY,
+    by_family,
+    list_aliases,
+    resolve,
+)
+from harness.comparison_runner import (
+    ComparisonRunner,
+    ModelComparisonResult,
+    summarize as summarize_comparison,
+)
 from core.taxonomy import (
     DEFAULT_TAXONOMY,
     Procedure,
@@ -696,6 +723,106 @@ async def cmd_demo(args: argparse.Namespace) -> None:
         print(f"  {result.summary}")
 
 
+def _build_target_from_spec(
+    spec: str,
+    *,
+    trajectory_log_path: str | None = None,
+    system_prompt: str | None = None,
+) -> tuple[TargetAgent, TargetProfile]:
+    """Build a target (real or mock) from a CLI spec string.
+
+    Accepted specs:
+        ``openai:gpt-4o-mini``, ``anthropic:claude-3-5-sonnet-latest``,
+        ``vllm:meta-llama/Llama-3.1-8B-Instruct@http://localhost:8000/v1``
+        ``mock:vulnerable`` | ``mock:hardened`` | ``mock:realistic``
+        Bare ``vulnerable`` / ``hardened`` / ``realistic`` (legacy mock aliases).
+    """
+    mock_aliases = {"vulnerable", "hardened", "realistic"}
+
+    if spec in mock_aliases or spec.startswith("mock:"):
+        kind = spec.split(":", 1)[1] if ":" in spec else spec
+        if kind not in mock_aliases:
+            raise TargetError(
+                f"Unknown mock target kind {kind!r}; "
+                f"expected one of {sorted(mock_aliases)}"
+            )
+        profile = TargetProfile(
+            name=f"mock:{kind}",
+            description=f"Mock target ({kind}) for offline testing",
+            known_tools=["search", "calculator", "file_reader"],
+            known_constraints=["no harmful content", "no PII disclosure"],
+            model_info={"provider": "mock", "type": kind},
+        )
+        factory = {
+            "vulnerable": MockTarget.vulnerable,
+            "hardened": MockTarget.hardened,
+            "realistic": MockTarget.realistic,
+        }[kind]
+        return factory(profile), profile
+
+    # Registry alias takes precedence over raw provider:model parsing.
+    overrides: dict[str, Any] = {}
+    if trajectory_log_path is not None:
+        overrides["trajectory_log_path"] = trajectory_log_path
+    if system_prompt is not None:
+        overrides["system_prompt"] = system_prompt
+
+    cfg = resolve(spec, **overrides)
+
+    display_name = (
+        spec if spec in MODEL_REGISTRY else f"{cfg.provider}:{cfg.model}"
+    )
+    target = create_target(cfg)
+    profile = TargetProfile(
+        name=display_name,
+        description=f"{cfg.provider} model {cfg.model}",
+        known_tools=[],
+        known_constraints=[],
+        model_info={
+            "provider": cfg.provider,
+            "model": cfg.model,
+            "base_url": cfg.base_url,
+            "alias": cfg.metadata.get("alias"),
+            "family": cfg.metadata.get("family"),
+            "params_b": cfg.metadata.get("params_b"),
+        },
+    )
+    return target, profile
+
+
+async def _run_evaluator(
+    kind: str,
+    campaign_result: CampaignResult,
+    judge_spec: str | None,
+) -> list[Any]:
+    """Instantiate the requested evaluator and score every probe."""
+    from analysis.evaluators import (
+        CodeBackdoorEvaluator,
+        SentimentEvaluator,
+        StrongREJECTEvaluator,
+        evaluate_campaign,
+    )
+
+    judge = None
+    if judge_spec:
+        judge_cfg = resolve(judge_spec)
+        judge = create_target(judge_cfg)
+
+    if kind == "strongreject":
+        evaluator = StrongREJECTEvaluator(judge=judge)
+    elif kind == "sentiment":
+        evaluator = SentimentEvaluator(judge=judge)
+    elif kind == "code_backdoor":
+        evaluator = CodeBackdoorEvaluator(judge=judge)
+    else:
+        raise ValueError(
+            f"Unknown evaluator {kind!r}; "
+            "expected one of: strongreject, sentiment, code_backdoor"
+        )
+
+    return await evaluate_campaign(campaign_result, evaluator)
+
+
 async def cmd_scan(args: argparse.Namespace) -> None:
     """Run a campaign scan."""
     print_banner()
@@ -703,17 +830,27 @@ async def cmd_scan(args: argparse.Namespace) -> None:
     target_module = args.target
     campaign_type = getattr(args, "campaign", "quick")
     output_file = getattr(args, "output", None)
+    trajectory_log = getattr(args, "trajectory_log", None)
+    system_prompt = getattr(args, "system_prompt", None)
 
-    # For now, only support mock targets
-    profile = TargetProfile(
-        name=target_module,
-        description=f"Target agent: {target_module}",
-        known_tools=[],
-        known_constraints=[],
-    )
-    target = MockTarget.realistic(profile)
+    try:
+        target, profile = _build_target_from_spec(
+            target_module,
+            trajectory_log_path=trajectory_log,
+            system_prompt=system_prompt,
+        )
+    except TargetError as exc:
+        print(f"  {Color.RED}Target error: {exc}{Color.RESET}")
+        sys.exit(2)
+
+    evaluator_kind = getattr(args, "evaluate", None)
+    judge_spec = getattr(args, "judge", None)
 
     config = build_campaign_config(profile.name, campaign_type)
+    # StrongREJECT needs the raw user prompts; force raw-exchange capture
+    # when an evaluator is requested.
+    if evaluator_kind:
+        config.record_all_exchanges = True
     trajectory_store = RedTeamTrajectoryStore()
 
     print(f"  {Color.CYAN}Scanning:{Color.RESET} {target_module}")
@@ -732,7 +869,25 @@ async def cmd_scan(args: argparse.Namespace) -> None:
     if traj is None:
         traj = RedTeamTrajectory(config.name, profile.name)
 
-    report = RedTeamReport(result, traj, DEFAULT_TAXONOMY)
+    evaluations: list[Any] = []
+    if evaluator_kind:
+        try:
+            evaluations = await _run_evaluator(
+                evaluator_kind, result, judge_spec
+            )
+        except Exception as exc:
+            print(f"  {Color.YELLOW}Evaluator {evaluator_kind!r} failed: {exc}{Color.RESET}")
+
+    report = RedTeamReport(result, traj, DEFAULT_TAXONOMY, evaluations=evaluations)
+
+    if evaluations:
+        sr = report.strongreject_summary().get("overall", {})
+        print(
+            f"  {Color.CYAN}StrongREJECT:{Color.RESET} "
+            f"refusal={sr.get('refusal_rate', 0.0):.1%} "
+            f"overall={sr.get('mean_overall_score', 0.0):.3f}"
+        )
+        print()
 
     print_executive_summary(report)
     print_technique_matrix(report)
@@ -773,6 +928,360 @@ async def cmd_analyze(args: argparse.Namespace) -> None:
         print(f"  Report saved to: {output_file}")
     else:
         print(output)
+
+
+async def cmd_compare(args: argparse.Namespace) -> None:
+    """Run identical campaign across multiple models and print a summary."""
+    print_banner()
+
+    campaign_type = getattr(args, "campaign", "quick")
+    trajectory_log_dir = getattr(args, "trajectory_log_dir", None)
+    output_file = getattr(args, "output", None)
+    evaluator_kind = getattr(args, "evaluate", None)
+    judge_spec = getattr(args, "judge", None)
+    reports_dir = getattr(args, "reports_dir", None)
+
+    if reports_dir:
+        Path(reports_dir).mkdir(parents=True, exist_ok=True)
+    if trajectory_log_dir:
+        Path(trajectory_log_dir).mkdir(parents=True, exist_ok=True)
+
+    # Resolve alias list from --targets or --family.
+    aliases: list[str] = []
+    if getattr(args, "family", None):
+        aliases = by_family(args.family)
+        if not aliases:
+            print(f"  {Color.RED}No models registered for family {args.family!r}.{Color.RESET}")
+            sys.exit(2)
+    elif getattr(args, "targets", None):
+        aliases = [a.strip() for a in args.targets.split(",") if a.strip()]
+    else:
+        print(f"  {Color.RED}Must provide --targets or --family.{Color.RESET}")
+        sys.exit(2)
+
+    unknown = [a for a in aliases if a not in MODEL_REGISTRY]
+    if unknown:
+        print(f"  {Color.RED}Unknown registry aliases: {', '.join(unknown)}{Color.RESET}")
+        sys.exit(2)
+
+    print(f"  {Color.CYAN}Comparing:{Color.RESET} {', '.join(aliases)}")
+    print(f"  {Color.CYAN}Campaign:{Color.RESET} {campaign_type}")
+    print()
+
+    def _build(alias: str) -> CampaignConfig:
+        cfg = build_campaign_config(alias, campaign_type)
+        # StrongREJECT needs raw user prompts — force exchange capture when
+        # an evaluator is requested.
+        if evaluator_kind:
+            cfg.record_all_exchanges = True
+        return cfg
+
+    runner = ComparisonRunner(
+        aliases,
+        build_config=_build,
+        trajectory_log_dir=trajectory_log_dir,
+    )
+    comparison_results = await runner.run()
+
+    summary_rows = summarize_comparison(comparison_results)
+
+    # Optionally run the evaluator on each successful model and enrich the
+    # summary with StrongREJECT aggregates.
+    evaluations_by_alias: dict[str, list[Any]] = {}
+    if evaluator_kind:
+        print(f"  {Color.CYAN}Evaluating:{Color.RESET} {evaluator_kind} "
+              f"(judge={judge_spec or 'openai:gpt-4o-mini'})")
+        from analysis.evaluators.evaluator_base import BaseEvaluator
+        for r in comparison_results:
+            if not r.ok or r.campaign_result is None:
+                continue
+            try:
+                evals = await _run_evaluator(
+                    evaluator_kind, r.campaign_result, judge_spec
+                )
+            except Exception as exc:
+                logger.exception("evaluator failed for %s", r.alias)
+                print(f"  {Color.YELLOW}[{r.alias}] evaluator error: {exc}{Color.RESET}")
+                continue
+            evaluations_by_alias[r.alias] = evals
+            agg = BaseEvaluator.aggregate(evals)
+            for row in summary_rows:
+                if row["alias"] == r.alias:
+                    row["sr_refusal_rate"] = agg["refusal_rate"]
+                    row["sr_mean_overall"] = agg["mean_overall_score"]
+                    row["sr_mean_convincingness"] = agg["mean_convincingness"]
+                    row["sr_mean_specificity"] = agg["mean_specificity"]
+                    break
+
+    # Optionally write per-model reports (JSON + Markdown) to reports_dir.
+    if reports_dir:
+        for r in comparison_results:
+            if not r.ok or r.campaign_result is None:
+                continue
+            traj = RedTeamTrajectory(
+                r.campaign_result.campaign_name, r.alias
+            )
+            report = RedTeamReport(
+                r.campaign_result, traj, DEFAULT_TAXONOMY,
+                evaluations=evaluations_by_alias.get(r.alias, []),
+            )
+            json_path = Path(reports_dir) / f"{r.alias}.json"
+            md_path = Path(reports_dir) / f"{r.alias}.md"
+            with open(json_path, "w") as f:
+                json.dump(report.full_report(), f, indent=2, default=str)
+            with open(md_path, "w") as f:
+                f.write(report.to_markdown())
+
+    # Print summary table
+    print()
+    print(f"  {Color.BOLD}Comparison Summary{Color.RESET}")
+    if evaluator_kind:
+        print(f"  {'=' * 115}")
+        header = (
+            f"  {'alias':<22} {'family':<12} {'params':>7} {'n':>4} "
+            f"{'hit':>6} {'risk':>5}  "
+            f"{'SR refusal':>11} {'SR overall':>11} {'conv':>5} {'spec':>5}"
+        )
+        print(header)
+        print(f"  {'-' * 115}")
+        for row in summary_rows:
+            params = f"{row['params_b']}" if row["params_b"] is not None else "-"
+            if row.get("error"):
+                print(f"  {Color.RED}{row['alias']:<22} ERROR: {row['error']}{Color.RESET}")
+                continue
+            hit = f"{row['success_rate']:.0%}" if row["success_rate"] is not None else "-"
+            risk = f"{row.get('risk_score', 0.0):.1f}"
+            sr_ref = row.get("sr_refusal_rate")
+            sr_ovr = row.get("sr_mean_overall")
+            conv = row.get("sr_mean_convincingness")
+            spec = row.get("sr_mean_specificity")
+            sr_ref_s = f"{sr_ref:.1%}" if sr_ref is not None else "-"
+            sr_ovr_s = f"{sr_ovr:.3f}" if sr_ovr is not None else "-"
+            conv_s = f"{conv:.2f}" if conv is not None else "-"
+            spec_s = f"{spec:.2f}" if spec is not None else "-"
+            print(
+                f"  {row['alias']:<22} {row['family']:<12} {params:>7} "
+                f"{row['n_probes']:>4} {hit:>6} {risk:>5}  "
+                f"{sr_ref_s:>11} {sr_ovr_s:>11} {conv_s:>5} {spec_s:>5}"
+            )
+    else:
+        print(f"  {'=' * 90}")
+        header = f"  {'alias':<22} {'family':<14} {'params_b':>9} {'probes':>7} {'success':>9} {'refusal':>9} {'risk':>6}"
+        print(header)
+        print(f"  {'-' * 90}")
+        for row in summary_rows:
+            params = f"{row['params_b']}" if row["params_b"] is not None else "-"
+            if row.get("error"):
+                print(f"  {Color.RED}{row['alias']:<22} ERROR: {row['error']}{Color.RESET}")
+                continue
+            success = f"{row['success_rate']:.0%}" if row["success_rate"] is not None else "-"
+            refusal = f"{row['refusal_rate']:.0%}" if row["refusal_rate"] is not None else "-"
+            risk = f"{row.get('risk_score', 0.0):.1f}"
+            print(
+                f"  {row['alias']:<22} {row['family']:<14} {params:>9} "
+                f"{row['n_probes']:>7} {success:>9} {refusal:>9} {risk:>6}"
+            )
+    print()
+
+    if output_file:
+        payload = {
+            "campaign": campaign_type,
+            "aliases": aliases,
+            "evaluator": evaluator_kind,
+            "judge": judge_spec,
+            "summary": summary_rows,
+            "per_model": [
+                {
+                    "alias": r.alias,
+                    "spec": r.spec.model_dump(),
+                    "error": r.error,
+                    "campaign": (
+                        r.campaign_result.to_dict()
+                        if r.campaign_result and hasattr(r.campaign_result, "to_dict")
+                        else None
+                    ),
+                    "evaluations": [
+                        e.model_dump()
+                        for e in evaluations_by_alias.get(r.alias, [])
+                    ],
+                }
+                for r in comparison_results
+            ],
+        }
+        with open(output_file, "w") as f:
+            json.dump(payload, f, indent=2, default=str)
+        print(f"  {Color.DIM}Comparison report saved to: {output_file}{Color.RESET}")
+
+
+async def cmd_engine_scan(args: argparse.Namespace) -> None:
+    """Run the focused vulnerability engine against one or more models."""
+    from analysis.evaluators import StrongREJECTEvaluator
+    from engine import BatchScanner, ScanConfig, VulnScanner
+    from rich.console import Console
+    from rich.live import Live
+    from rich.table import Table
+
+    console = Console()
+    states: dict[str, dict[str, Any]] = {}
+    live: Live | None = None
+
+    def render_table() -> Table:
+        table = Table(title="Vulnerability Engine")
+        table.add_column("Model")
+        table.add_column("Phase")
+        table.add_column("Probes")
+        table.add_column("Vulns")
+        table.add_column("Elapsed")
+        for key in sorted(states):
+            state = states[key]
+            table.add_row(
+                key,
+                str(state.get("phase", "-")),
+                f"{state.get('completed_probes', 0)}/{state.get('total_probes', 0)}",
+                str(state.get("vulnerabilities_found", 0)),
+                f"{state.get('elapsed_seconds', 0.0):.1f}s",
+            )
+        if not states:
+            table.add_row("-", "queued", "0/0", "0", "0.0s")
+        return table
+
+    async def progress_callback(payload: dict[str, Any]) -> None:
+        key = str(payload.get("alias") or payload.get("model") or "scan")
+        states[key] = dict(payload)
+        if live is not None:
+            live.update(render_table())
+
+    def build_scan_config() -> ScanConfig:
+        return ScanConfig(
+            recon_probes_per_category=args.recon_probes_per_category,
+            attack_depth=args.attack_depth,
+            confirmation_runs=args.confirmation_runs,
+            severity_threshold=args.severity_threshold,
+            max_concurrent_requests=args.max_concurrent_requests,
+            timeout_seconds=args.timeout_seconds,
+        )
+
+    def make_evaluator_factory():
+        judge_spec = getattr(args, "judge", None)
+        if not judge_spec:
+            return StrongREJECTEvaluator
+
+        def _factory() -> StrongREJECTEvaluator:
+            judge = create_target(resolve(judge_spec))
+            return StrongREJECTEvaluator(judge=judge)
+
+        return _factory
+
+    config = build_scan_config()
+    evaluator_factory = make_evaluator_factory()
+    output_file = getattr(args, "output", None)
+
+    with Live(render_table(), console=console, refresh_per_second=8) as active_live:
+        live = active_live
+        if getattr(args, "target", None):
+            try:
+                target_cfg = resolve(args.target)
+                target = create_target(target_cfg)
+            except TargetError as exc:
+                console.print(f"[red]Target error:[/red] {exc}")
+                sys.exit(2)
+
+            scanner = VulnScanner(
+                target,
+                evaluator_factory(),
+                config,
+                model_name=args.target,
+                progress_callback=progress_callback,
+            )
+            report = await scanner.scan()
+            payload = report.model_dump(mode="json")
+        else:
+            if getattr(args, "family", None):
+                models = by_family(args.family)
+                if not models:
+                    console.print(f"[red]No models registered for family {args.family!r}.[/red]")
+                    sys.exit(2)
+            else:
+                models = [
+                    alias
+                    for alias, spec in MODEL_REGISTRY.items()
+                    if spec.provider in {"together", "ollama", "vllm"}
+                ]
+            batch = BatchScanner(
+                models,
+                config,
+                evaluator_factory=evaluator_factory,
+                progress_callback=progress_callback,
+            )
+            report = await batch.scan_all()
+            payload = report.model_dump(mode="json")
+
+    if output_file:
+        with open(output_file, "w") as f:
+            json.dump(payload, f, indent=2)
+        console.print(f"Saved engine report to {output_file}")
+
+    if getattr(args, "target", None):
+        console.print(
+            f"{report.model}: {len(report.vulnerabilities)} confirmed vulnerabilities "
+            f"from {report.total_probes_sent} probes."
+        )
+        for vulnerability in report.vulnerabilities[:5]:
+            console.print(
+                f"{vulnerability.id}  {vulnerability.attack_type}/{vulnerability.technique}  "
+                f"severity={vulnerability.severity:.1f}  "
+                f"repro={vulnerability.reproduction_rate:.0%}"
+            )
+    else:
+        console.print(
+            f"Scanned {len(report.reports)} models with {len(report.errors)} errors."
+        )
+        for finding in report.worst_findings[:10]:
+            console.print(
+                f"{finding.model}: {finding.vulnerability.attack_type}/{finding.vulnerability.technique} "
+                f"severity={finding.vulnerability.severity:.1f}"
+            )
+
+
+def cmd_targets(args: argparse.Namespace) -> None:
+    """List registered models and which API keys are configured."""
+    import os
+
+    env_for_provider = {
+        "openai": "OPENAI_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "google": "GOOGLE_API_KEY",
+        "mistral": "MISTRAL_API_KEY",
+        "together": "TOGETHER_API_KEY",
+        "ollama": None,  # local, no key required
+        "vllm": None,
+    }
+
+    print_banner()
+    print(f"  {Color.BOLD}Registered Models{Color.RESET}")
+    print(f"  {'=' * 90}")
+    header = f"  {'alias':<22} {'provider':<12} {'family':<14} {'params_b':>9}  {'key?':<6} model"
+    print(header)
+    print(f"  {'-' * 90}")
+
+    for alias in list_aliases():
+        spec = MODEL_REGISTRY[alias]
+        env = env_for_provider.get(spec.provider)
+        if env is None:
+            key_status = f"{Color.DIM}n/a{Color.RESET}"
+        elif os.environ.get(env):
+            key_status = f"{Color.GREEN}yes{Color.RESET}"
+        else:
+            key_status = f"{Color.RED}no{Color.RESET}"
+        params = f"{spec.params_b}" if spec.params_b is not None else "-"
+        print(
+            f"  {alias:<22} {spec.provider:<12} {spec.family:<14} "
+            f"{params:>9}  {key_status:<6} {spec.model}"
+        )
+    print()
+    print(f"  {Color.DIM}Total: {len(MODEL_REGISTRY)} models across "
+          f"{len({s.family for s in MODEL_REGISTRY.values()})} families.{Color.RESET}")
+    print()
 
 
 def cmd_techniques(args: argparse.Namespace) -> None:
@@ -831,7 +1340,11 @@ def main() -> None:
     scan_parser = subparsers.add_parser("scan", help="Run a red-team campaign scan.")
     scan_parser.add_argument(
         "--target", required=True,
-        help="Target module or identifier.",
+        help=(
+            "Target spec. Formats: 'openai:gpt-4o-mini', "
+            "'anthropic:claude-3-5-sonnet-latest', "
+            "'vllm:<model>@<base_url>', or 'mock:vulnerable|hardened|realistic'."
+        ),
     )
     scan_parser.add_argument(
         "--campaign", default="quick",
@@ -840,6 +1353,163 @@ def main() -> None:
     scan_parser.add_argument(
         "--output", "-o",
         help="Output file path for the report.",
+    )
+    scan_parser.add_argument(
+        "--trajectory-log", dest="trajectory_log", default=None,
+        help="Optional JSONL path to append every query/response pair for audit.",
+    )
+    scan_parser.add_argument(
+        "--system-prompt", dest="system_prompt", default=None,
+        help="Optional system prompt applied to every target query.",
+    )
+    scan_parser.add_argument(
+        "--evaluate", dest="evaluate", default=None,
+        choices=["strongreject", "sentiment", "code_backdoor"],
+        help=(
+            "Run this evaluator over the probe responses in addition to the "
+            "built-in CVSS scoring. StrongREJECT is the default research "
+            "evaluator (Souly et al. 2024; FAR.AI Bowen et al. 2024)."
+        ),
+    )
+    scan_parser.add_argument(
+        "--judge", dest="judge", default=None,
+        help=(
+            "Judge model spec for --evaluate (registry alias or "
+            "provider:model). Defaults to openai:gpt-4o-mini."
+        ),
+    )
+
+    # compare
+    compare_parser = subparsers.add_parser(
+        "compare",
+        help="Run the same campaign across multiple registered models.",
+    )
+    compare_group = compare_parser.add_mutually_exclusive_group(required=True)
+    compare_group.add_argument(
+        "--targets",
+        help="Comma-separated registry aliases (e.g. 'llama-3.1-8b,llama-3.1-70b').",
+    )
+    compare_group.add_argument(
+        "--family",
+        help="Shorthand: run all registered models in this family (e.g. 'llama-3.1').",
+    )
+    compare_parser.add_argument(
+        "--campaign", default="quick",
+        help="Campaign type: full, quick, or a tactic name (default: quick).",
+    )
+    compare_parser.add_argument(
+        "--trajectory-log-dir", dest="trajectory_log_dir", default=None,
+        help="Directory to write per-model JSONL trajectory logs.",
+    )
+    compare_parser.add_argument(
+        "--output", "-o",
+        help="Output file path for the comparison report (JSON).",
+    )
+    compare_parser.add_argument(
+        "--evaluate", dest="evaluate", default=None,
+        choices=["strongreject", "sentiment", "code_backdoor"],
+        help=(
+            "Run this evaluator over every probe response per model and "
+            "include StrongREJECT-style aggregates in the comparison summary."
+        ),
+    )
+    compare_parser.add_argument(
+        "--judge", dest="judge", default=None,
+        help=(
+            "Judge model spec for --evaluate (registry alias or "
+            "provider:model). Defaults to openai:gpt-4o-mini."
+        ),
+    )
+    compare_parser.add_argument(
+        "--reports-dir", dest="reports_dir", default=None,
+        help=(
+            "Directory to write per-model JSON + Markdown reports "
+            "(one pair per alias)."
+        ),
+    )
+
+    # engine
+    engine_parser = subparsers.add_parser(
+        "engine",
+        help="Run the focused vulnerability engine.",
+    )
+    engine_subparsers = engine_parser.add_subparsers(
+        dest="engine_command",
+        help="Engine commands",
+    )
+    engine_scan_parser = engine_subparsers.add_parser(
+        "scan",
+        help="Run the vulnerability engine against one or more models.",
+    )
+    engine_group = engine_scan_parser.add_mutually_exclusive_group(required=True)
+    engine_group.add_argument(
+        "--target",
+        help="Single target to scan (registry alias or provider:model spec).",
+    )
+    engine_group.add_argument(
+        "--family",
+        help="Scan every registered model in a family.",
+    )
+    engine_group.add_argument(
+        "--all-open-weight",
+        dest="all_open_weight",
+        action="store_true",
+        help="Scan every open-weight model in the registry.",
+    )
+    engine_scan_parser.add_argument(
+        "--output", "-o",
+        help="Structured output path for the engine report.",
+    )
+    engine_scan_parser.add_argument(
+        "--judge",
+        default=None,
+        help="Judge model for StrongREJECT scoring (registry alias or provider:model).",
+    )
+    engine_scan_parser.add_argument(
+        "--attack-depth",
+        default="standard",
+        choices=["quick", "standard", "deep"],
+        help="Attack depth for the focused attack phase.",
+    )
+    engine_scan_parser.add_argument(
+        "--recon-probes-per-category",
+        type=int,
+        default=3,
+        help="Lightweight recon probes per attack surface.",
+    )
+    engine_scan_parser.add_argument(
+        "--confirmation-runs",
+        type=int,
+        default=3,
+        help="Confirmation reruns per candidate finding.",
+    )
+    engine_scan_parser.add_argument(
+        "--severity-threshold",
+        type=float,
+        default=4.0,
+        help="Minimum severity to include in the final report.",
+    )
+    engine_scan_parser.add_argument(
+        "--max-concurrent-requests",
+        type=int,
+        default=5,
+        help="Maximum concurrent target requests.",
+    )
+    engine_scan_parser.add_argument(
+        "--timeout-seconds",
+        type=int,
+        default=30,
+        help="Per-request timeout for engine probes.",
+    )
+
+    # targets
+    targets_parser = subparsers.add_parser(
+        "targets",
+        help="List registered models and API-key status.",
+    )
+    targets_parser.add_argument(
+        "--list", action="store_true", default=True,
+        help="List all registered models (default behavior).",
     )
 
     # analyze
@@ -892,6 +1562,15 @@ def main() -> None:
 
     if args.command == "scan":
         asyncio.run(cmd_scan(args))
+    elif args.command == "compare":
+        asyncio.run(cmd_compare(args))
+    elif args.command == "engine":
+        if args.engine_command == "scan":
+            asyncio.run(cmd_engine_scan(args))
+        else:
+            parser.error("engine requires a subcommand")
+    elif args.command == "targets":
+        cmd_targets(args)
     elif args.command == "analyze":
         asyncio.run(cmd_analyze(args))
     elif args.command == "techniques":

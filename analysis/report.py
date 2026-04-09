@@ -41,12 +41,51 @@ class RedTeamReport:
         campaign_result: CampaignResult,
         trajectory: RedTeamTrajectory,
         taxonomy: TechniqueRegistry,
+        evaluations: list[Any] | None = None,
     ) -> None:
         self.campaign_result = campaign_result
         self.trajectory = trajectory
         self.taxonomy = taxonomy
         self._scorer = VulnerabilityScorer(campaign_result, taxonomy)
         self._surface = AttackSurfaceMap(campaign_result, taxonomy)
+        # Optional list[analysis.evaluators.EvaluationResult]; kept untyped
+        # at import time to avoid a hard dependency cycle.
+        self.evaluations = list(evaluations or [])
+
+    # ------------------------------------------------------------------
+    # StrongREJECT integration
+    # ------------------------------------------------------------------
+
+    def strongreject_summary(self) -> dict[str, Any]:
+        """Aggregate StrongREJECT-shaped evaluations for this campaign.
+
+        Returns a dict with overall stats, per-technique breakdowns, and the
+        full per-probe rows. Empty dict when no evaluations are attached.
+        """
+        if not self.evaluations:
+            return {}
+
+        # Lazy import so report.py stays import-safe without evaluator deps.
+        from analysis.evaluators.evaluator_base import BaseEvaluator
+
+        overall = BaseEvaluator.aggregate(self.evaluations)
+
+        by_technique: dict[str, dict[str, Any]] = {}
+        for ev in self.evaluations:
+            tid = ev.technique_id or "unknown"
+            by_technique.setdefault(tid, {"items": []})["items"].append(ev)
+        per_technique_summary: dict[str, Any] = {}
+        for tid, bucket in by_technique.items():
+            per_technique_summary[tid] = BaseEvaluator.aggregate(bucket["items"])
+
+        return {
+            "evaluator": (
+                self.evaluations[0].evaluator if self.evaluations else "strongreject"
+            ),
+            "overall": overall,
+            "per_technique": per_technique_summary,
+            "per_probe": [e.model_dump() for e in self.evaluations],
+        }
 
     def executive_summary(self) -> dict[str, Any]:
         """Generate a concise executive summary.
@@ -209,7 +248,7 @@ class RedTeamReport:
         Returns:
             Dict with all report sections.
         """
-        return {
+        report: dict[str, Any] = {
             "report_metadata": {
                 "campaign_name": self.campaign_result.campaign_name,
                 "target_name": self.campaign_result.target_name,
@@ -223,6 +262,10 @@ class RedTeamReport:
             "attack_timeline": self.attack_timeline(),
             "technique_matrix": self.technique_matrix(),
         }
+        sr = self.strongreject_summary()
+        if sr:
+            report["strongreject"] = sr
+        return report
 
     def to_json(self, indent: int = 2) -> str:
         """Serialize the full report to JSON.
@@ -298,6 +341,64 @@ class RedTeamReport:
                     f"{vuln['exploitability']:.0%} |"
                 )
             lines.append("")
+
+        # StrongREJECT results (when evaluations were attached)
+        sr = report.get("strongreject")
+        if sr:
+            lines.append("---")
+            lines.append("")
+            lines.append("## StrongREJECT Evaluation")
+            lines.append("")
+            overall = sr.get("overall", {})
+            lines.append(
+                f"*Evaluator: `{sr.get('evaluator', 'strongreject')}` — "
+                f"scores comparable to Bowen et al. 2024 "
+                f"(arXiv:2408.02946).*"
+            )
+            lines.append("")
+            lines.append(f"- **Probes scored:** {int(overall.get('n', 0))}")
+            lines.append(
+                f"- **Refusal rate:** {overall.get('refusal_rate', 0.0):.1%}"
+            )
+            lines.append(
+                f"- **Mean overall score:** "
+                f"{overall.get('mean_overall_score', 0.0):.3f} / 1.000"
+            )
+            lines.append(
+                f"- **Mean convincingness:** "
+                f"{overall.get('mean_convincingness', 0.0):.2f} / 5"
+            )
+            lines.append(
+                f"- **Mean specificity:** "
+                f"{overall.get('mean_specificity', 0.0):.2f} / 5"
+            )
+            lines.append("")
+
+            per_tech = sr.get("per_technique", {})
+            if per_tech:
+                lines.append(
+                    "| Technique | n | Refusal Rate | Mean Overall | Conv. | Spec. |"
+                )
+                lines.append(
+                    "|-----------|---|--------------|--------------|-------|-------|"
+                )
+                for tid, stats in sorted(
+                    per_tech.items(),
+                    key=lambda kv: kv[1].get("mean_overall_score", 0.0),
+                    reverse=True,
+                ):
+                    try:
+                        name = self.taxonomy.get(tid).name
+                    except KeyError:
+                        name = tid
+                    lines.append(
+                        f"| {name} ({tid}) | {int(stats.get('n', 0))} | "
+                        f"{stats.get('refusal_rate', 0.0):.0%} | "
+                        f"{stats.get('mean_overall_score', 0.0):.3f} | "
+                        f"{stats.get('mean_convincingness', 0.0):.2f} | "
+                        f"{stats.get('mean_specificity', 0.0):.2f} |"
+                    )
+                lines.append("")
 
         # Detailed Vulnerabilities
         if vulns:
