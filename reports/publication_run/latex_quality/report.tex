@@ -1,0 +1,82 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{siunitx}
+\usepackage{enumitem}
+\sisetup{detect-all=true}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+\title{Red-Agent Vulnerability Assessment}
+\author{Automated Publication Bundle}
+\date{\today}
+\begin{document}
+\maketitle
+\begin{abstract}
+This report summarizes a full adversarial scan over the currently reachable model subset, combining campaign hit rates with StrongREJECT-style scoring and an explicit registry-wide provider reachability preflight. The figure set is exported as PDF, SVG, and PNG for direct paper integration.
+\end{abstract}
+\section{Executive Summary}
+\begin{itemize}[leftmargin=1.2em]
+\item Highest measured aggregate risk: \textbf{claude-sonnet-4} with risk score \textbf{4.39}.
+\item Highest StrongREJECT overall score: \textbf{mistral-large} at \textbf{0.119}.
+\item Most effective technique across completed runs: \textbf{Tool Permission Probing} with mean score \textbf{0.330}.
+\item Registry preflight blocked \textbf{13} configured aliases, preventing those rows from being treated as true negatives.
+\end{itemize}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{plots/overview_dashboard.pdf}
+\caption{Executive dashboard: risk ranking, attack frontier, top techniques, and registry reachability.}
+\end{figure}
+\section{Model-Level Results}
+\begin{table}[H]
+\centering
+\caption{Model summary on the reachable subset.}
+\input{tables/model_summary.tex}
+\end{table}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.84\textwidth]{plots/frontier.pdf}
+\caption{Attack frontier. Bubble area increases with aggregate risk score.}
+\end{figure}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{plots/metric_heatmap.pdf}
+\caption{Normalized heatmap where darker cells indicate greater vulnerability intensity.}
+\end{figure}
+\section{Technique Landscape}
+\begin{table}[H]
+\centering
+\caption{Top techniques by mean StrongREJECT overall score.}
+\input{tables/top_techniques.tex}
+\end{table}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{plots/technique_heatmap.pdf}
+\caption{Per-model technique landscape over the highest-scoring techniques.}
+\end{figure}
+\section{Scaling and Reachability}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.84\textwidth]{plots/scaling_plot.pdf}
+\caption{Scaling trend over the reachable size-annotated family subset.}
+\end{figure}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.84\textwidth]{plots/provider_status.pdf}
+\caption{Registry reachability by provider.}
+\end{figure}
+\section{Execution Blockers}
+The following aliases were blocked by quota, invalid credentials, or stale model identifiers during the registry preflight.
+\input{tables/execution_blockers.tex}
+\section{Reproducibility}
+The campaign type was \emph{full}; the evaluator was \emph{strongreject}; the judge model was anthropic:claude-sonnet-4-6.
+\end{document}
