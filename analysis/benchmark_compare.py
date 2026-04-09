@@ -102,7 +102,7 @@ def main() -> None:
     M = np.vstack([risk, hit, err, sr]).T
     denom = np.maximum(M.max(axis=0) - M.min(axis=0), 1e-9)
     Mn = (M - M.min(axis=0)) / denom
-    im = ax3.imshow(Mn, aspect="auto", cmap="magma")
+    im = ax3.imshow(Mn, aspect="auto", cmap="YlGnBu")
     ax3.set_xticks(np.arange(len(metric_names)))
     ax3.set_xticklabels(metric_names)
     ax3.set_yticks(np.arange(len(aliases)))
@@ -110,12 +110,11 @@ def main() -> None:
     ax3.set_title("Normalized Metric Profile by Model")
     for i in range(len(aliases)):
         for j in range(len(metric_names)):
-            ax3.text(j, i, f"{M[i, j]:.2f}", ha="center", va="center", color="white", fontsize=7)
+            ax3.text(j, i, f"{M[i, j]:.2f}", ha="center", va="center", color="#111111", fontsize=7)
     fig.colorbar(im, ax=ax3, shrink=0.6, label="normalized value")
 
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
-    fig.suptitle("Comparative Analysis: Campaign Metrics and Judge Metrics", fontsize=15, fontweight="bold")
     fig.savefig(out, dpi=300, bbox_inches="tight")
     print(f"Wrote {out}")
 

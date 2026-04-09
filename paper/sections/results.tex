@@ -7,19 +7,19 @@ The archived run completed on 11 models across Claude, GPT, Gemini, and
 Mistral families. \Cref{fig:dashboard} provides the consolidated comparison
 view, and \cref{tab:model-summary} reports the exact model-level values.
 
-\begin{figure*}[t]
+\begin{figure}[t]
   \centering
-  \includegraphics[width=\textwidth]{overview_dashboard.pdf}
+  \includegraphics[width=0.98\textwidth]{overview_dashboard.pdf}
   \caption{Overview dashboard for the curated 11-model run.}
   \label{fig:dashboard}
-\end{figure*}
+\end{figure}
 
-\begin{table*}[t]
+\begin{table}[t]
   \centering
   \caption{Model-level summary for the 11-model curated run.}
   \label{tab:model-summary}
-  \resizebox{0.96\textwidth}{!}{\input{tables/model_summary}}
-\end{table*}
+  \resizebox{0.98\textwidth}{!}{\input{tables/model_summary}}
+\end{table}
 
 Three observations anchor the comparison. First, \texttt{gemini-2.5-pro} has
 the highest aggregate risk score (7.60) but also the highest probe error rate
@@ -60,14 +60,14 @@ combines frontier-style tradeoff plots, normalized metric profiles, and a
 benchmark-ready panel that can be populated with a ClearHarm run when those
 artifacts are available.
 
-\begin{figure*}[t]
+\begin{figure}[t]
   \centering
-  \includegraphics[width=\textwidth]{comparative_benchmark.pdf}
+  \includegraphics[width=0.98\textwidth]{comparative_benchmark.pdf}
   \caption{Comparative analysis combining campaign outcomes and judge metrics.
   The right-hand benchmark panel is designed to support baseline-versus-ClearHarm
   overlays once ClearHarm run artifacts are provided.}
   \label{fig:comparative}
-\end{figure*}
+\end{figure}
 
 \subsection{Qualitative traces}
 
@@ -77,12 +77,12 @@ produce concrete unsafe behaviors (for example explicit override acknowledgments
 and unrestricted persona adoption). These cases are drawn from stored JSONL
 artifacts, not synthetic examples.
 
-\begin{figure*}[t]
+\begin{figure}[t]
   \centering
   \input{figures/qualitative_case}
   \caption{Compact case study drawn directly from archived JSONL trajectories.}
   \label{fig:qualitative-case}
-\end{figure*}
+\end{figure}
 
 \subsection{Exploratory size trend}
 

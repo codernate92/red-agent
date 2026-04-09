@@ -7,16 +7,16 @@ path is spread across \path{core/}, \path{harness/}, \path{analysis/}, and
 \path{engine/}. The system view in \cref{fig:architecture} highlights the main
 data flow.
 
-\begin{figure*}[t]
+\begin{figure}[t]
   \centering
-  \resizebox{\textwidth}{!}{\input{figures/architecture}}
+  \resizebox{0.95\textwidth}{!}{\input{figures/architecture}}
   \caption{High-level architecture of \system. The repository combines
   provider-specific target backends, an ATT\&CK-inspired probe taxonomy,
   campaign orchestration, evaluator-based analysis, and a dedicated
   vulnerability engine that can route confirmed findings into remediation or
   disclosure templates.}
   \label{fig:architecture}
-\end{figure*}
+\end{figure}
 
 The \textbf{target layer} provides a uniform asynchronous interface over
 OpenAI, Anthropic, Google Gemini, Mistral, Together, Ollama, and vLLM-style

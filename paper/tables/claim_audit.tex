@@ -1,8 +1,7 @@
-\begin{longtable}{>{\raggedright\arraybackslash}p{0.27\textwidth}>{\raggedright\arraybackslash}p{0.22\textwidth}>{\raggedright\arraybackslash}p{0.43\textwidth}}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.30\textwidth}>{\raggedright\arraybackslash}p{0.18\textwidth}X}
 \toprule
 Claim & Evidence type & Source \\
 \midrule
-\endhead
 The curated run executed 11 models with 20 probes each. & Artifact & \path{reports/publication_run/latex_quality/summary.csv} \\
 The registry currently contains 11 aliases across four providers. & Artifact & \path{core/model_registry.py} \\
 No aliases were blocked in preflight for the curated run. & Artifact & \path{reports/publication_run/latex_quality/provider_status.csv} \\
@@ -10,7 +9,7 @@ No aliases were blocked in preflight for the curated run. & Artifact & \path{rep
 \texttt{mistral-small} had the highest campaign hit rate (75\%). & Artifact & \path{reports/publication_run/latex_quality/summary.csv} \\
 Both Mistral models accepted simple override / persona-hijack prompts. & Artifact & \path{trajectories/publication_run/mistral-small.jsonl}; \path{trajectories/publication_run/mistral-large.jsonl} \\
 Modern automated LLM red teaming commonly uses model-generated attacks and structured evaluation. & Citation & \citet{perez2022redteaming,radharapu2023aart,mazeika2024harmbench} \\
-Prompt injection and jailbreak robustness remain active attack surfaces for deployed LLM systems. & Citation & \citet{greshake2023notwhat,zou2023universal,wei2023jailbroken,toyer2025tensortrust} \\
+Prompt injection and jailbreak robustness remain active attack surfaces for deployed LLM systems. & Citation & \citet{greshake2023notwhat,zou2023universal,wei2023jailbroken,toyer2024tensortrust} \\
 Recent work has examined scaling trends for safety failures in related attack settings. & Citation & \citet{bowen2024scalingtrends} \\
 \bottomrule
-\end{longtable}
+\end{tabularx}
