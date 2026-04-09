@@ -142,14 +142,14 @@ async def test_vuln_scanner_generates_confirmed_findings() -> None:
 async def test_batch_scanner_aggregates_reports() -> None:
     targets = {
         "gpt-4o-mini": StubTarget("gpt-4o-mini", {}),
-        "llama-3.1-8b": StubTarget("llama-3.1-8b", {}),
+        "claude-sonnet-4": StubTarget("claude-sonnet-4", {}),
     }
 
     def target_factory(alias: str) -> BaseTarget:
         return targets[alias]
 
     batch = BatchScanner(
-        models=["gpt-4o-mini", "llama-3.1-8b"],
+        models=["gpt-4o-mini", "claude-sonnet-4"],
         config=ScanConfig(
             attack_depth="quick",
             recon_probes_per_category=1,
@@ -163,7 +163,7 @@ async def test_batch_scanner_aggregates_reports() -> None:
 
     report = await batch.scan_all()
 
-    assert set(report.reports) == {"gpt-4o-mini", "llama-3.1-8b"}
+    assert set(report.reports) == {"gpt-4o-mini", "claude-sonnet-4"}
     assert report.errors == {}
     assert report.worst_findings
     assert "universal" in report.cross_model_comparison
@@ -205,8 +205,8 @@ def test_finding_router_medium_and_low_actions() -> None:
     )
     low = medium.model_copy(update={"id": "VULN-003", "severity": 2.5})
 
-    medium_action = router.route(medium, "llama-3.1-8b")
-    low_action = router.route(low, "llama-3.1-8b")
+    medium_action = router.route(medium, "claude-sonnet-4")
+    low_action = router.route(low, "claude-sonnet-4")
 
     assert medium_action.priority == "medium"
     assert medium_action.action == "log_for_review"

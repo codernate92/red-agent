@@ -1,43 +1,28 @@
 \section{Discussion}
 \label{sec:discussion}
 
-The most important substantive pattern in the archived run is the separation
-between evaluator-grounded harmful compliance and aggregate campaign risk.
-\texttt{claude-sonnet-4} topped the CVSS-like risk score, but the clearest
-qualitative jailbreak traces and the highest \sr\ scores came from the two
-reachable Mistral models. This is exactly why the paper reports multiple
-metrics: a model can expose more structurally important techniques overall while
-another produces more concrete unsafe completions on the attacks that do land.
+The strongest pattern in this run is a split between vulnerability signal and
+execution stability. Gemini and Mistral variants occupy the higher-risk or
+higher-hit region, while Claude and GPT variants show more stable execution with
+lower hit rates.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{frontier.pdf}
-  \caption{Risk-versus-\sr\ frontier for the executed models. The figure makes
-  the metric split visible: Claude models concentrate aggregate risk, while
-  Mistral models occupy the higher-\sr\ region.}
+  \caption{Frontier view for the curated run.}
   \label{fig:frontier}
 \end{figure}
 
-\Cref{fig:frontier} makes this split explicit. The Claude cluster sits higher on
-aggregate risk, whereas the two Mistral models move toward the upper-right
-region on \sr\ and hit rate, at the cost of much worse error behavior. From an
-engineering perspective, this suggests that a real red-team report should not
-collapse everything into a single scalar. The operator who needs to decide
-whether to file a disclosure, harden a tool boundary, or debug a provider setup
-needs to know whether they are looking at refusal weakness, concrete unsafe
-content, or a brittle inference path.
+From an engineering perspective, this reinforces a practical reporting rule:
+aggregate risk, hit/refusal rates, and error rates should be interpreted
+together rather than collapsed into one scalar.
 
-The second important point is methodological. Research papers often abstract
-away the conditions that prevented an evaluation from running. In live systems
-work, those conditions are part of the measurement. The blocked Together,
-OpenAI, and Google aliases tell us something operationally meaningful: a
-multi-provider safety framework needs credential hygiene, quota awareness, and
-registry maintenance just to produce the evaluation matrix one might naively
-assume is available by default.
+A second methodological point is artifact discipline. The current paper is tied
+strictly to archived run outputs under \path{reports/publication_run/} and
+\path{trajectories/publication_run/}. This keeps claims auditable and limits
+interpretive drift.
 
-Finally, the new engine package points toward a more disciplined future workflow
-than the archived comparison path alone. The code now supports recon-led attack
-surface ranking, confirmation reruns, and disclosure routing. Once that engine
-is exercised in a live sweep over a healthier provider set, the framework should
-be able to move from broad campaign comparison toward more targeted,
-reproducible vulnerability discovery.
+Finally, the engine package provides a path beyond broad campaign comparison
+alone. Recon-led prioritization and confirmation reruns should improve
+cost-efficiency and finding quality in future sweeps over the same curated
+registry.

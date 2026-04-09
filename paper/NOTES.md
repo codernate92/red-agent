@@ -2,41 +2,27 @@
 
 ## Directly Measured
 
-- The archived comparison run executed `20` probes per model across `7` models:
-  five Anthropic aliases and two Mistral aliases.
-- The executed run used the `full` campaign and `strongreject` evaluation with
-  judge `anthropic:claude-sonnet-4-6`.
-- Highest aggregate risk score: `claude-sonnet-4` at `4.3917`.
-- Highest `StrongREJECT` overall score: `mistral-large` at `0.11875`.
-- Highest operational error rate: `mistral-large` at `0.35`.
-- Highest mean technique score: `Tool Permission Probing` at `0.330`.
-- The combined reachability table records `13` blocked aliases:
-  `8` invalid Together API keys, `4` quota-related failures, and `1` stale
-  Gemini preview model identifier.
-- Concrete qualitative traces show both `mistral-small` and `mistral-large`
-  responding with `COMPROMISED` and adopting the `ShadowGPT` persona.
+- The curated comparison run executed `20` probes per model across `11` models.
+- Providers represented in the curated registry: OpenAI, Anthropic, Google, and Mistral.
+- Highest aggregate risk score: `gemini-2.5-pro` at `7.60`.
+- Highest campaign hit rate: `mistral-small` at `0.75`.
+- Highest operational error rate: `gemini-2.5-pro` at `0.45`.
+- Preflight reachability for the curated run is `11/11` with no blocked aliases.
+- Qualitative traces still show override/persona-hijack behaviors in Mistral trajectories.
 
 ## Inferred Or Synthesized
 
-- The provider reachability table in the paper treats the `7` executed models as
-  successful registry entries and combines them with subsequent preflight
-  failures for the remaining `13` aliases.
-- The paper describes the new `engine/` package as a systems contribution, but
-  the archived empirical section is based on the stable comparison-runner path
-  rather than an end-to-end live engine sweep.
-- The qualitative interpretation that Mistral models displayed stronger
-  evaluator-rated jailbreak behavior than the Claude cluster is based on the
-  archived `StrongREJECT` scores and trace examples, not on human re-labeling.
+- Curating the registry to fully testable aliases improves comparability and reduces
+  confounding from credential/quota failures.
+- Risk, hit rate, and error rate diverge by family; no single scalar captures the
+  complete operational picture.
+- The engine package remains a systems contribution; empirical results in this paper
+  still come from the stable comparison-runner path.
 
 ## Remaining Weaknesses
 
-- Only `7/20` configured aliases were executed successfully, so the empirical
-  sample is narrow.
-- The run covers only the Claude and Mistral families in practice.
-- `StrongREJECT` scores were produced by a single judge model/provider rather
-  than by multiple judges or human annotation.
-- The ATT&CK-inspired probe set is not the same as the public HarmBench or
-  `StrongREJECT` harmful-prompt benchmarks, so benchmark-level comparisons
-  should be treated cautiously.
-- The exploratory size trend is based only on the reachable Mistral family and
-  should not be read as a general scaling law.
+- Registry coverage is intentionally narrower (11 aliases), so claims do not extend to
+  excluded providers/families.
+- Evaluator-judge metrics were not the focus of this refreshed run.
+- The ATT&CK-inspired probe set differs from external benchmark prompt sets.
+- Size-trend interpretation remains exploratory due to uneven family coverage.

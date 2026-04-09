@@ -49,13 +49,9 @@ Evaluator interfaces live under [`analysis/evaluators/`](/Users/nathanheath/red-
 The current registry includes:
 
 - OpenAI closed: `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`
-- OpenAI open-weight: `gpt-oss-120b`
-- Anthropic: `claude-sonnet-4`, `claude-3-5-sonnet`, `claude-3-5-haiku`
-- Google: `gemini-2.5-pro`, `gemini-2.0-flash`
-- Llama 3.1: `llama-3.1-8b`, `llama-3.1-70b`, `llama-3.1-405b`
-- Gemma 2: `gemma-2-9b`, `gemma-2-27b`
-- Mistral family: `mistral-nemo`, `mistral-small`, `mistral-large`
-- Mixtral: `mixtral-8x22b`
+- Anthropic: `claude-sonnet-4`, `claude-sonnet-4-6`, `claude-sonnet-4-5`, `claude-haiku-4-5`, `claude-opus-4-6`
+- Google: `gemini-2.5-pro`
+- Mistral family: `mistral-small`, `mistral-large`
 
 Use `python cli.py targets` to see the active list plus API-key status.
 
@@ -75,7 +71,7 @@ Relevant variables:
 - `ANTHROPIC_API_KEY`
 - `GOOGLE_API_KEY`
 - `MISTRAL_API_KEY`
-- `TOGETHER_API_KEY`
+- Optional: `TOGETHER_API_KEY` (for raw `together:<model>` specs outside the curated registry)
 - Optional: `VLLM_BASE_URL`, `OLLAMA_BASE_URL`
 
 ## CLI
@@ -90,15 +86,15 @@ Single-model scan:
 
 ```bash
 python cli.py scan --target gpt-4o-mini --campaign quick
-python cli.py scan --target llama-3.1-70b --campaign full --trajectory-log trajectories/llama-3.1-70b.jsonl
-python cli.py scan --target gpt-oss-120b --campaign quick --evaluate strongreject
+python cli.py scan --target claude-sonnet-4-6 --campaign full --trajectory-log trajectories/claude-sonnet-4-6.jsonl
+python cli.py scan --target mistral-large --campaign quick --evaluate strongreject
 ```
 
 Cross-model comparison:
 
 ```bash
-python cli.py compare --family llama-3.1 --campaign quick
-python cli.py compare --targets llama-3.1-8b,llama-3.1-70b,gpt-oss-120b --campaign quick --evaluate strongreject --reports-dir reports/
+python cli.py compare --family claude --campaign quick
+python cli.py compare --targets gpt-4o,gpt-4o-mini,gpt-4-turbo,gemini-2.5-pro,mistral-small,mistral-large --campaign quick --evaluate strongreject --reports-dir reports/
 ```
 
 Existing-result analysis:

@@ -1,17 +1,17 @@
 # Publication Report
 
 - Campaign: `full`
-- Evaluator: `strongreject`
-- Judge: `anthropic:claude-sonnet-4-6`
-- Reachable models completed: 7
-- Registry aliases blocked in preflight: 13
+- Evaluator: `None`
+- Judge: `default`
+- Reachable models completed: 11
+- Registry aliases blocked in preflight: 0
 
 ## Key Findings
 
-- Highest risk score: `claude-sonnet-4` at `4.39`.
-- Highest StrongREJECT overall score: `mistral-large` at `0.119`.
-- Most effective technique: `Tool Permission Probing` with mean score `0.330`.
-- Highest probe error rate: `mistral-large` at `35%`.
+- Highest risk score: `gemini-2.5-pro` at `7.60`.
+- Highest StrongREJECT overall score: `gemini-2.5-pro` at `0.000`.
+- Most effective technique: `Tool Permission Probing` with mean score `0.000`.
+- Highest probe error rate: `gemini-2.5-pro` at `45%`.
 
 ## Figures
 
@@ -47,33 +47,37 @@
 
 | Model | Family | Risk | Hit rate | Error rate | SR overall | Judge comply |
 |-------|--------|------|----------|------------|------------|--------------|
-| claude-sonnet-4 | claude | 4.39 | 30% | 0% | 0.072 | 25% |
-| claude-opus-4-6 | claude | 4.35 | 30% | 5% | 0.069 | 20% |
-| mistral-large | mistral | 3.77 | 45% | 35% | 0.119 | 45% |
-| mistral-small | mistral | 3.74 | 50% | 5% | 0.103 | 45% |
-| claude-sonnet-4-5 | claude | 3.72 | 30% | 0% | 0.050 | 25% |
-| claude-sonnet-4-6 | claude | 3.03 | 30% | 0% | 0.094 | 25% |
-| claude-haiku-4-5 | claude | 2.80 | 15% | 0% | 0.069 | 20% |
+| gemini-2.5-pro | gemini | 7.60 | 5% | 45% | 0.000 | 100% |
+| mistral-large | mistral | 4.78 | 50% | 30% | 0.000 | 100% |
+| mistral-small | mistral | 4.49 | 75% | 0% | 0.000 | 100% |
+| claude-sonnet-4 | claude | 4.42 | 35% | 0% | 0.000 | 100% |
+| claude-opus-4-6 | claude | 3.66 | 30% | 0% | 0.000 | 100% |
+| gpt-4o-mini | gpt | 3.56 | 25% | 0% | 0.000 | 100% |
+| claude-sonnet-4-5 | claude | 3.53 | 35% | 0% | 0.000 | 100% |
+| gpt-4o | gpt | 3.47 | 30% | 0% | 0.000 | 100% |
+| claude-sonnet-4-6 | claude | 3.24 | 25% | 0% | 0.000 | 100% |
+| claude-haiku-4-5 | claude | 3.13 | 25% | 0% | 0.000 | 100% |
+| gpt-4-turbo | gpt | 2.94 | 20% | 25% | 0.000 | 100% |
 
 ## Limitations
 
 - Only the mistral family contributed reachable size-annotated points, so the size trend is exploratory rather than a general scaling result.
-- Registry preflight blocked 13 aliases, so the empirical section reflects the reachable subset rather than the full configured registry.
+- Registry preflight blocked 0 aliases, so the empirical section reflects the reachable subset rather than the full configured registry.
 
 ## Strongest Techniques
 
 | Technique | Mean SR overall |
 |-----------|-----------------|
-| Tool Permission Probing | 0.330 |
-| Multi-turn Gradual Escalation | 0.250 |
-| Output Format Manipulation | 0.250 |
-| Safety Filter Probing | 0.205 |
-| Tool Argument Injection | 0.161 |
-| System Prompt Boundary Detection | 0.116 |
-| Context Window Poisoning | 0.071 |
-| Instruction Override | 0.071 |
-| Payload Obfuscation Development | 0.036 |
-| Indirect Prompt Injection | 0.036 |
+| Tool Permission Probing | 0.000 |
+| Safety Filter Probing | 0.000 |
+| System Prompt Boundary Detection | 0.000 |
+| Adversarial Persona Crafting | 0.000 |
+| Payload Obfuscation Development | 0.000 |
+| Direct Prompt Injection | 0.000 |
+| Indirect Prompt Injection | 0.000 |
+| Privilege Request Social Engineering | 0.000 |
+| Tool Argument Injection | 0.000 |
+| Jailbreak via Role-Play | 0.000 |
 
 ## LaTeX Assets
 

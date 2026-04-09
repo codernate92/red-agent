@@ -24,12 +24,12 @@ endpoints. These adapters normalize conversation handling, retries, rate
 limits, and JSONL trajectory logging, which lets the rest of the code operate
 over a common \texttt{BaseTarget} abstraction.
 
-The \textbf{campaign layer} supplies a registry of 20 model aliases across five
-providers and eight model families, a 20-technique ATT\&CK-inspired taxonomy,
-and runners for single-model and multi-model campaigns. The stable empirical
-results analyzed in this paper come from this layer: the archived comparison run
-used the existing full campaign path rather than the new engine's recon/attack/
-confirm execution loop.
+The \textbf{campaign layer} supplies the curated registry used in this paper
+(11 aliases across OpenAI, Anthropic, Google, and Mistral), a 20-technique
+ATT\&CK-inspired taxonomy, and runners for single-model and multi-model
+campaigns. The stable empirical results analyzed here come from this layer:
+the archived comparison run used the existing full campaign path rather than
+the new engine's recon/attack/confirm execution loop.
 
 The \textbf{analysis layer} scores campaign outputs, aggregates CVSS-like
 severity estimates, maps results back to tactic categories, and produces

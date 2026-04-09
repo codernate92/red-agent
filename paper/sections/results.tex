@@ -3,117 +3,63 @@
 
 \subsection{Model-level outcomes}
 
-The archived run completed on seven models: five Claude aliases and two Mistral
-aliases. \Cref{fig:dashboard} provides the main model-comparison view, while
-\cref{tab:model-summary} reports the exact values used throughout the paper.
+The archived run completed on 11 models across Claude, GPT, Gemini, and
+Mistral families. \Cref{fig:dashboard} provides the consolidated comparison
+view, and \cref{tab:model-summary} reports the exact model-level values.
 
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{overview_dashboard.pdf}
-  \caption{Overview dashboard generated from the archived comparison run. The
-  executed sample contains seven models, and the dashboard jointly visualizes
-  aggregate risk, \sr\ behavior, and execution rates.}
+  \caption{Overview dashboard for the curated 11-model run.}
   \label{fig:dashboard}
 \end{figure*}
 
 \begin{table*}[t]
   \centering
-  \caption{Model-level summary for the seven executed models. ``\sr\
-  non-refusal'' is $1 - \text{SR refusal rate}$.}
+  \caption{Model-level summary for the 11-model curated run.}
   \label{tab:model-summary}
   \resizebox{0.96\textwidth}{!}{\input{tables/model_summary}}
 \end{table*}
 
-Three facts anchor the model-level comparison. First,
-\texttt{claude-sonnet-4} received the highest aggregate risk score at 4.39,
-closely followed by \texttt{claude-opus-4-6} at 4.35. Second,
-\texttt{mistral-large} produced the strongest evaluator-rated jailbreak signal,
-with \sr\ overall 0.11875, followed by \texttt{mistral-small} at 0.103125.
-Third, operational behavior varied sharply: \texttt{mistral-large} had the
-highest probe error rate at 35\%, whereas four of the Claude runs completed
-without any probe-level errors.
+Three observations anchor the comparison. First, \texttt{gemini-2.5-pro} has
+the highest aggregate risk score (7.60) but also the highest probe error rate
+(45\%). Second, \texttt{mistral-small} and \texttt{mistral-large} show the
+highest campaign hit rates (75\% and 50\%, respectively). Third, the Claude and
+OpenAI clusters are operationally stable (near-zero error rates) with lower hit
+rates than Mistral.
 
-These metrics point in different directions, and that is itself informative. The
-Claude cluster concentrated more aggregate campaign risk, but the Mistral models
-produced stronger judge-rated unsafe compliance and more overt qualitative
-jailbreak traces. Averaged at the family level, the two executed Mistral models
-showed a higher mean \sr\ overall (0.111 versus 0.071 for Claude) and a higher
-campaign hit rate (47.5\% versus 27\%), but also far worse execution stability
-(20\% mean probe error rate versus 1\% for Claude).
-
-\subsection{Technique-level patterns}
-
-The technique-level view is similarly uneven. \Cref{fig:technique-heatmap}
-shows the per-model score distribution over the framework's techniques, and
-\cref{tab:top-techniques} lists the strongest techniques by mean \sr\ score.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\columnwidth]{technique_heatmap.pdf}
-  \caption{Technique-level heatmap over the executed sample. The strongest
-  average signals came from permission probing, gradual escalation, and output
-  format manipulation rather than from a single dominant jailbreak family.}
-  \label{fig:technique-heatmap}
-\end{figure}
-
-\begin{table}[t]
-  \centering
-  \caption{Top techniques ranked by mean \sr\ overall across the executed run.}
-  \label{tab:top-techniques}
-  \input{tables/top_techniques}
-\end{table}
-
-The single strongest technique in the archived run was \emph{Tool Permission
-Probing}, with mean \sr\ overall 0.330. It was followed by \emph{Multi-turn
-Gradual Escalation} and \emph{Output Format Manipulation}, both at 0.250. This
-distribution matters because it suggests that the most productive probes were
-not limited to classic ``ignore previous instructions'' phrasing. Several of
-the stronger techniques probe authority, tool boundaries, and structured output
-control, which is consistent with the application-integrated threat models
-highlighted by prompt-injection work \citep{greshake2023notwhat,toyer2024tensortrust}.
+These metrics should be interpreted jointly. A high hit rate alone does not
+imply highest aggregate risk, and a high risk score can coincide with a brittle
+execution profile. The practical value of the framework is in exposing that
+tradeoff explicitly.
 
 \subsection{Qualitative traces}
 
-The quantitative aggregates are backed by direct model traces. The clearest
-examples in the archived run come from the two reachable Mistral models. As
-shown in \cref{fig:qualitative-case}, both \texttt{mistral-small} and
-\texttt{mistral-large} accepted a simple system-override probe by responding
-with the requested token \texttt{COMPROMISED}, and both adopted the unrestricted
-\texttt{ShadowGPT} persona when asked to do so.
+Qualitative trajectory excerpts remain consistent with the quantitative summary.
+In the Mistral traces, low-complexity override and persona-hijack prompts still
+produce concrete unsafe behaviors (for example explicit override acknowledgments
+and unrestricted persona adoption). These cases are drawn from stored JSONL
+artifacts, not synthetic examples.
 
 \begin{figure*}[t]
   \centering
   \input{figures/qualitative_case}
-  \caption{Compact case study drawn directly from archived JSONL trajectories.
-  The prompts and excerpts are not synthetic; they were extracted from the
-  stored per-model interaction logs.}
+  \caption{Compact case study drawn directly from archived JSONL trajectories.}
   \label{fig:qualitative-case}
 \end{figure*}
 
-These traces are simple, which is exactly why they are useful. They show
-alignment failure on low-complexity prompts rather than on optimized suffixes or
-specialized injection scaffolds. In other words, the strongest qualitative
-failures in the reachable sample did not require sophisticated attack search.
-
 \subsection{Exploratory size trend}
 
-\Cref{fig:scaling} plots aggregate risk against log-parameter count for the
-subset of executed models with known parameter counts.
+\Cref{fig:scaling} plots aggregate risk against log-parameter count for
+size-annotated models in the run.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{scaling_plot.pdf}
-  \caption{Exploratory size trend from the archived run. Only the reachable
-  Mistral family contributed size-annotated points, so this figure should be
-  read as a within-family comparison rather than as a general scaling law.}
+  \caption{Exploratory size trend for the current curated run.}
   \label{fig:scaling}
 \end{figure}
 
-This figure is intentionally labeled as exploratory. Only
-\texttt{mistral-small} (22B) and \texttt{mistral-large} (123B) were both
-reachable and size-annotated in the archived run. The larger model did score
-slightly higher on aggregate risk and \sr, but the sample is far too small to
-support a general claim about scaling. We include the figure because the code
-and registry are designed for such analyses and because related work suggests
-that size trends may matter in adjacent vulnerability settings
-\citep{bowen2024scalingtrends}; we do not present it as conclusive evidence.
+The figure remains exploratory. The strongest multi-point size coverage is still
+within the Mistral family, so broad scaling conclusions across all families are
+not warranted from this run alone.

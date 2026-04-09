@@ -62,14 +62,16 @@ def test_parse_judge_json_falls_back_conservatively() -> None:
 def test_model_registry_resolution_and_filters() -> None:
     """The registry should reflect the currently supported model set."""
     aliases = list_aliases()
-    assert "gpt-oss-120b" in aliases
+    assert "gpt-4o" in aliases
+    assert "gemini-2.0-flash" not in aliases
+    assert "llama-3.1-70b" not in aliases
     assert "deepseek-v3" not in MODEL_REGISTRY
     assert "qwen-2.5-7b" not in MODEL_REGISTRY
 
-    cfg = resolve("gpt-oss-120b")
-    assert cfg.provider == "together"
-    assert cfg.model == "openai/gpt-oss-120b"
-    assert cfg.metadata["family"] == "gpt-oss"
+    cfg = resolve("gpt-4o")
+    assert cfg.provider == "openai"
+    assert cfg.model == "gpt-4o"
+    assert cfg.metadata["family"] == "gpt"
 
 
 def test_report_includes_strongreject_summary(

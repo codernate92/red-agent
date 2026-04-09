@@ -152,5 +152,6 @@ class GoogleTarget(BaseTarget):
             "quota exceeded",
             "limit: 0",
             "api key not valid",
+            "not_found",
         )
         return not any(marker in message for marker in hard_fail_markers)

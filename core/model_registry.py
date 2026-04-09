@@ -1,6 +1,6 @@
 """Registry of known models used across red-agent experiments.
 
-The registry maps short, human-friendly aliases (e.g. ``llama-3.1-70b``) to a
+The registry maps short, human-friendly aliases (e.g. ``gpt-4o``) to a
 `ModelSpec` describing the provider, native model ID, optional parameter count
 in billions (used for scaling regressions), and model family (used for
 fixed-effects grouping in the scaling analyzer).
@@ -52,15 +52,6 @@ MODEL_REGISTRY: dict[str, ModelSpec] = {
         provider="openai", model="gpt-4-turbo", params_b=None, family="gpt"
     ),
 
-    # ---- GPT-OSS (OpenAI open-weight, via Together) ----
-    "gpt-oss-120b": ModelSpec(
-        provider="together",
-        model="openai/gpt-oss-120b",
-        params_b=117,  # ~117B total MoE params
-        family="gpt-oss",
-        notes="OpenAI open-weight MoE (~5.1B active).",
-    ),
-
     # ---- Anthropic (closed) ----
     "claude-sonnet-4": ModelSpec(
         provider="anthropic",
@@ -96,59 +87,10 @@ MODEL_REGISTRY: dict[str, ModelSpec] = {
     # ---- Google (closed) ----
     "gemini-2.5-pro": ModelSpec(
         provider="google",
-        model="gemini-2.5-pro-preview-05-06",
+        model="gemini-2.5-pro",
         params_b=None,
         family="gemini",
     ),
-    "gemini-2.0-flash": ModelSpec(
-        provider="google",
-        model="gemini-2.0-flash",
-        params_b=None,
-        family="gemini",
-    ),
-
-    # ---- Llama 3.1 (open, via Together) ----
-    "llama-3.1-8b": ModelSpec(
-        provider="together",
-        model="meta-llama/Llama-3.1-8B-Instruct-Turbo",
-        params_b=8,
-        family="llama-3.1",
-    ),
-    "llama-3.1-70b": ModelSpec(
-        provider="together",
-        model="meta-llama/Llama-3.1-70B-Instruct-Turbo",
-        params_b=70,
-        family="llama-3.1",
-    ),
-    "llama-3.1-405b": ModelSpec(
-        provider="together",
-        model="meta-llama/Llama-3.1-405B-Instruct-Turbo",
-        params_b=405,
-        family="llama-3.1",
-    ),
-
-    # ---- Gemma 2 (open, via Together) ----
-    "gemma-2-9b": ModelSpec(
-        provider="together",
-        model="google/gemma-2-9b-it",
-        params_b=9,
-        family="gemma-2",
-    ),
-    "gemma-2-27b": ModelSpec(
-        provider="together",
-        model="google/gemma-2-27b-it",
-        params_b=27,
-        family="gemma-2",
-    ),
-
-    # ---- Mixtral (open, via Together) ----
-    "mixtral-8x22b": ModelSpec(
-        provider="together",
-        model="mistralai/Mixtral-8x22B-Instruct-v0.1",
-        params_b=141,  # total params
-        family="mixtral",
-    ),
-
     # ---- Mistral (direct API) ----
     "mistral-small": ModelSpec(
         provider="mistral",
@@ -160,12 +102,6 @@ MODEL_REGISTRY: dict[str, ModelSpec] = {
         provider="mistral",
         model="mistral-large-latest",
         params_b=123,
-        family="mistral",
-    ),
-    "mistral-nemo": ModelSpec(
-        provider="together",
-        model="mistralai/Mistral-Nemo-Instruct-2407",
-        params_b=12,
         family="mistral",
     ),
 }
@@ -190,7 +126,7 @@ def list_aliases() -> list[str]:
 
 
 def by_family(family: str) -> list[str]:
-    """Return registry aliases belonging to a given family (e.g. ``llama-3.1``)."""
+    """Return registry aliases belonging to a given family (e.g. ``claude``)."""
     return [
         alias
         for alias, spec in MODEL_REGISTRY.items()

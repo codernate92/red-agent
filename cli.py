@@ -1387,11 +1387,11 @@ def main() -> None:
     compare_group = compare_parser.add_mutually_exclusive_group(required=True)
     compare_group.add_argument(
         "--targets",
-        help="Comma-separated registry aliases (e.g. 'llama-3.1-8b,llama-3.1-70b').",
+        help="Comma-separated registry aliases (e.g. 'gpt-4o,gpt-4o-mini').",
     )
     compare_group.add_argument(
         "--family",
-        help="Shorthand: run all registered models in this family (e.g. 'llama-3.1').",
+        help="Shorthand: run all registered models in this family (e.g. 'claude').",
     )
     compare_parser.add_argument(
         "--campaign", default="quick",

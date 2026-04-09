@@ -2,47 +2,33 @@
 \label{sec:setup}
 
 The empirical basis of this paper is the archived artifact set under
-\path{reports/publication_run/}. The main run used the repository's
-comparison-runner path with the \texttt{full} campaign and \texttt{strongreject}
-evaluation enabled, and the summary CSV in the publication bundle records one
-20-probe campaign for each executed model.
+\path{reports/publication_run/}. The run uses the repository's stable
+comparison-runner path with the \texttt{full} campaign configuration.
 
 \paragraph{Registry and providers.}
-At the time of writing, \path{core/model_registry.py} defines 20 aliases across
-five providers and eight model families: OpenAI GPT models, Anthropic Claude
-models, Google Gemini models, Mistral-hosted models, and Together-backed
-open-weight aliases spanning Llama 3.1, Gemma 2, Mixtral, Mistral Nemo, and
-GPT-OSS. The executed run reached only seven of these aliases: five Anthropic
-models and two Mistral models. The remaining 13 aliases appear in the combined
-operational status table as blocked entries.
+At the time of writing, \path{core/model_registry.py} defines an 11-alias
+curated registry across four providers and four families: OpenAI GPT models,
+Anthropic Claude models, Google Gemini, and direct Mistral APIs.
 
 \paragraph{Campaign construction.}
-The archived run used the framework's \texttt{full} campaign configuration,
-which expands the default ATT\&CK-inspired taxonomy into 20 probes organized by
-tactic category. The taxonomy spans reconnaissance, resource development,
-initial access, privilege escalation, defense evasion, persistence,
-exfiltration, impact, and goal hijacking. Under the stable comparison-runner
-path, this yields one probe per technique, for 20 attempted probes per model.
+The \texttt{full} campaign expands the ATT\&CK-inspired taxonomy into 20 probes
+organized by tactic category (reconnaissance, resource development, initial
+access, privilege escalation, defense evasion, persistence, exfiltration,
+impact, and goal hijacking). Each model receives the same 20 attempted probes.
 
 \paragraph{Trace capture and reporting.}
-Each model interaction is logged to per-model JSONL files under
-\path{trajectories/publication_run/}. The corresponding structured reports are
-stored under \path{reports/publication_run/per_model/}. The later publication
-bundle generated from these artifacts lives under
-\path{reports/publication_run/latex_quality/}, and its CSV exports supply the
-summary tables used in this paper.
+Each interaction is logged to per-model JSONL files under
+\path{trajectories/publication_run/}. Structured per-model reports are stored
+under \path{reports/publication_run/per_model/}. Publication assets (CSV,
+plots, and LaTeX tables) are generated under
+\path{reports/publication_run/latex_quality/}.
 
 \paragraph{Evaluator configuration.}
-Although \path{analysis/evaluators/strongreject.py} defaults to an OpenAI
-\texttt{gpt-4o-mini} judge, the archived run overrode that default and used the
-Claude Sonnet 4.6 alias \texttt{claude-sonnet-4-6} as the \sr\ judge. We
-preserve that choice in the paper because the artifact set is the source of
-truth. We do not rerun the experiments under a different judge simply to match
-the code default.
+This refreshed run focuses on campaign metrics and aggregate risk outputs from
+the framework pipeline. Evaluator-specific comparisons are intentionally left
+for a dedicated follow-up run with a fixed judge model and budget.
 
 \paragraph{Operational status table.}
-The provider-status summary used in \cref{sec:reachability} is derived from a
-combination of executed comparison results and later preflight checks.
-Successful rows correspond to models that were actually run in the archived
-comparison, while blocked rows correspond to aliases that failed preflight due
-to quota, credential, or registry issues.
+Provider preflight status is generated with
+\path{analysis/provider_status.py}. In this curated run, all 11 configured
+aliases are reachable in preflight.

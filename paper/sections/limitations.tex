@@ -1,28 +1,21 @@
 \section{Limitations and Threats to Validity}
 \label{sec:limitations}
 
-The paper's strongest limitation is coverage. Although the registry contains 20
-aliases, only seven were executed in the archived run, and those seven cover
-only the Claude and Mistral families in practice. Any provider-level conclusion
-outside that subset would therefore be overstated.
+The strongest limitation is coverage scope. The curated registry improves
+reliability, but it narrows the evaluated model universe to 11 aliases.
+Provider families not included in the curated registry are outside this paper's
+empirical claims.
 
-A second limitation is evaluation coupling. The archived \sr\ run used a single
-judge model, \texttt{anthropic:claude-sonnet-4-6}. This provides consistency,
-but it also leaves open the possibility of judge-specific bias. We do not have
-human labels or a multi-judge ensemble for the current artifact set.
+Second, the current run emphasizes campaign-native metrics and aggregate risk
+rather than a dedicated evaluator-judge analysis. That choice reduces run
+complexity and API spend but limits claims tied to external judge rubrics.
 
-Third, the attack set is framework-native. The 20 ATT\&CK-inspired probes are a
-useful operational taxonomy, but they are not the same as the public HarmBench
-or \sr\ harmful-prompt datasets. Applying \sr\ to these probes is a deliberate
-internal-evaluation choice, not a direct benchmark reproduction.
+Third, the probe set is framework-native. The 20 ATT\&CK-inspired probes are
+operationally useful, but they are not identical to HarmBench or public
+\textsc{StrongREJECT} benchmark prompts.
 
-Fourth, the engine itself is not yet the empirical substrate of the paper. The
-engine package is implemented, tested, and central to the framework's intended
-design, but the archived results were generated with the stable comparison-runner
-path. The paper therefore evaluates the framework through its current evidence
-base rather than claiming a dedicated live engine sweep that did not happen.
+Fourth, the engine package is a systems contribution, but the empirical results
+reported here come from the stable comparison-runner path.
 
-Finally, the size figure is only exploratory. The reachable size-annotated
-sample contains two Mistral models and no second family with multiple executed
-size points. That is enough to motivate future work, but not enough to support a
-general scaling narrative.
+Finally, the size analysis remains exploratory because family-level
+size-annotated coverage is still uneven.

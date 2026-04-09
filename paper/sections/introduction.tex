@@ -1,57 +1,37 @@
 \section{Introduction}
 \label{sec:introduction}
 
-Large language model deployment now depends on some form of adversarial
-evaluation. Early red-teaming pipelines relied heavily on hand-authored probes,
-but recent work has shown that language models themselves can generate diverse
-test cases at scale \citep{perez2022redteaming,radharapu2023aart}. In parallel,
-the jailbreak literature has made clear that alignment failures are not confined
-to obscure edge cases: simple role-play prompts, adversarial suffixes, prompt
-injection chains, and automated jailbreak generation can all elicit harmful or
-policy-violating behavior from deployed systems
-\citep{wei2023jailbroken,zou2023universal,yu2024dontlisten}. Evaluation work
-has therefore shifted from merely finding attacks to measuring them with
-standardized, reproducible metrics \citep{mazeika2024harmbench,souly2024strongreject}.
+Large language model deployment now depends on adversarial evaluation. Early
+red-teaming pipelines relied heavily on hand-authored probes, but recent work
+shows that language models can generate or scale attack sets effectively
+\citep{perez2022redteaming,radharapu2023aart}. In parallel, jailbreak and prompt
+injection research demonstrates that alignment failures persist across diverse
+attack styles \citep{wei2023jailbroken,zou2023universal,yu2024dontlisten}.
 
-That shift creates a practical systems problem. In real evaluations, the hardest
-part is often not writing another jailbreak prompt. It is building an execution
-stack that can speak to multiple providers, preserve trajectories, keep track of
-which failures are model refusals versus infrastructure errors, and emit outputs
-that someone can actually act on. A paper-quality plot that ignores quota
-exhaustion, invalid credentials, or stale registry entries may still look clean,
-but it describes a world different from the one a red-team pipeline actually
-inhabits.
+That shift creates a practical systems problem. In live evaluations, the hard
+part is often not writing one more jailbreak prompt; it is running a reliable,
+traceable, cross-provider pipeline that distinguishes refusals from execution
+failures and emits outputs suitable for engineering decisions.
 
-This paper studies \system, a multi-provider red-teaming framework organized
-around four ideas:
+This paper studies \system, a multi-provider framework organized around four
+ideas:
 \begin{itemize}
-\item a provider-agnostic execution layer with JSONL trajectory logging,
-\item an ATT\&CK-inspired LLM attack taxonomy and campaign runner,
-\item evaluator-integrated analysis and reporting, and
-\item a new vulnerability engine centered on recon, focused attack, and
-confirmation phases.
+\item provider-agnostic target adapters with JSONL trajectory logging,
+\item an ATT\&CK-inspired LLM probe taxonomy and campaign runner,
+\item analysis/reporting pipelines for CSV, plots, and LaTeX artifacts, and
+\item a vulnerability engine for recon, focused attack, and confirmation.
 \end{itemize}
 
-We do not present an idealized benchmark run. Instead, we write from the
-archived evidence currently present in the repository. The main empirical basis
-is a completed \texttt{compare --campaign full --evaluate strongreject} run
-covering seven models with 20 probes each. A companion operational status table
-records the remaining 13 configured aliases that were blocked by quota
-exhaustion, invalid API credentials, or a stale Gemini preview identifier. This
-produces a narrower but more honest result set than a typical leaderboard.
+The empirical basis is the current archived artifact set under
+\path{reports/publication_run/}. The reported run executes the full 20-probe
+campaign over an 11-model curated registry and includes preflight status for
+all configured aliases. This provides a narrower but operationally consistent
+comparison set than a broader registry with persistent credential or access
+blockers.
 
-The paper makes four contributions. First, it documents the architecture of a
-practical multi-provider red-teaming framework rather than a single benchmark.
-Second, it describes a dedicated vulnerability engine that converts model traces
-into confirmed findings and disclosure-ready outputs. Third, it reports a live
-artifact-backed comparison over the reachable subset of the current registry,
-including qualitative jailbreak traces on Mistral models. Fourth, it treats
-operational reachability as a first-class evaluation result rather than a
-background inconvenience.
-
-The resulting claims are intentionally modest. The executed sample is small,
-concentrated in the Claude and Mistral families, and judged by a single
-\sr\ evaluator model. We therefore do not claim a broad cross-provider scaling
-law. What we do claim is narrower and, we think, useful: a working framework
-for live red teaming should report both model vulnerabilities and the execution
-conditions that determine which models can be evaluated at all.
+The paper makes four contributions. First, it documents a practical
+multi-provider red-teaming architecture rather than a single benchmark script.
+Second, it provides an artifact-backed model comparison with unified reporting
+outputs. Third, it demonstrates transparent operational accounting by pairing
+campaign outcomes with provider-status artifacts. Fourth, it packages the full
+pipeline for reproducibility in manuscript-ready form.
